@@ -90,8 +90,7 @@ class CometLogger(Logger):
         self._experiment.log_metric("MSE, {}".format(name), metrics["mse"])
         self._experiment.log_metric("MAE, {}".format(name), metrics["mae"])
         self._experiment.log_metric("Gaussian mean for (E - E_pred) / E, {}".format(name), metrics["mean_er"])
-        self._experiment.log_metric("Gaussian std for (E - E_pred) / E, {}".format(name), metrics["mean_er"])
-        self._experiment.log_metric("Gaussian mean for (E - E_pred) / E, {}".format(name), metrics["std_er"])
+        self._experiment.log_metric("Gaussian std for (E - E_pred) / E, {}".format(name), metrics["std_er"])
         plt.close(figures["gaussian"])
 
         return metrics, figures
