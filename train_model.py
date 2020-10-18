@@ -115,7 +115,7 @@ def train(
         mean_loss_val = perform_epoch(net, val_loader, loss_function, device=device)
         logger.log_metrics(net, train_loader, "Train", device)
         logger.log_metrics(net, val_loader, "Validation", device)
-        experiment.log("validation_loss", mean_loss_val)
+        experiment.log_metric("validation_loss", mean_loss_val)
         if scheduler is not None:
             if isinstance(scheduler, torch.optim.lr_scheduler.CosineAnnealingLR):
                 scheduler.step()

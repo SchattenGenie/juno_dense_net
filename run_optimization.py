@@ -14,7 +14,7 @@ import os
 optimizer_config = {
     "algorithm": "bayes",
     "spec": {
-        "maxCombo": 5,
+        "maxCombo": 100,
         "metric": "validation_loss"
     },
     "parameters": {
@@ -45,7 +45,7 @@ command_cluster = "sbatch -c {0} -t {1} --gpus={2} --job-name={3} run_command.sh
 
 @click.command()
 @click.option('--slurm', type=bool, default=False)
-@click.option('--algorithm', type=str, default='random')  # bayes
+@click.option('--algorithm', type=str, default='random')  # random bayes
 @click.option('--slurm_username', type=str, default='vbelavin')
 @click.option('--datadir', type=str, default='./')
 @click.option('--project_name', type=str, prompt='Enter project name')
