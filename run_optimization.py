@@ -18,10 +18,10 @@ optimizer_config = {
         "metric": "validation_loss"
     },
     "parameters": {
-        "lr": {"min": 1e-4, "max": 1e-1, "type": "double"},
+        "lr": {"min": 1e-4, "max": 1e-2, "type": "double"},
         "nonlinearity": {"type": "categorical", "values": ["ReLU", "Tanh"]},
-        "hidden_dim": {"min": 8, "max": 256, "type": "integer", "scalingType": "uniform"},
-        "num_hidden": {"min": 2, "max": 16, "type": "integer", "scalingType": "uniform"},
+        "hidden_dim": {"min": 16, "max": 256, "type": "integer", "scalingType": "uniform"},
+        "num_hidden": {"min": 2, "max": 10, "type": "integer", "scalingType": "uniform"},
         "batch_size": {"min": 128, "max": 1024, "type": "integer", "scalingType": "uniform"},
         "scheduler_type": {"type": "categorical", "values": ["ReduceLROnPlateau", "CosineAnnealingLR", "None"]},
         "loss_function": {"type": "categorical", "values": ["mse", "mae", "energy_resolution_mse"]},
