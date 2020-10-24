@@ -71,25 +71,6 @@ def logging_test_data_all_types(datadir, logger, net):
         logger._experiment.log_asset("datatable_predictions.pkl", overwrite=True, copy_to_tmp=False)
 
 
-def logging_test_data(datadir, logger, net):
-    test_metrics = []
-    for energy in []:
-        for j in ["0", "3", "20", "23"]:
-            test_filename = os.path.join(datadir, './ProcessedTestReduced3/{}.csv'.format(i))
-            X_test, y_test = juno_loader.transform(test_filename)
-            X_test = torch.tensor(X_test).float()  # .to(device)
-            y_test = torch.tensor(y_test).float()  # .to(device)
-            dataset_test = TensorDataset(X_test, y_test)
-            test_loader = torch.utils.data.DataLoader(
-                dataset_test, batch_size=1024, shuffle=False, **dataloader_kwargs
-            )
-            metrics, figures = logger.log_metrics(net, test_loader, "Test, {} MeV".format(i), device)
-            # todo save predictions
-
-            test_metrics.append(metrics)
-    logger.log_er_plot(test_metrics)
-
-
 @click.command()
 @click.option('--project_name', type=str, prompt='Enter project name')
 @click.option('--work_space', type=str, prompt='Enter workspace name')
@@ -99,6 +80,10 @@ def logging_test_data(datadir, logger, net):
 @click.option('--num_hidden', type=int, default=4)
 @click.option('--lr', type=float, default=1e-3)
 @click.option('--scheduler_type', type=str, default="ReduceLROnPlateau")
+@click.option('--use_swa', type=bool, default=False)
+@click.option('--use_layer_norm', type=bool, default=False)
+@click.option('--optimizer_cls', type=str, default="Adam")
+@click.option('--init_type', type=str, default="normal")
 @click.option('--datadir', type=str, default='./')
 @click.option('--batch_size', type=int, default=512)
 @click.option('--epochs', type=int, default=1000)
@@ -107,7 +92,7 @@ def train(
         batch_size=512, lr=1e-3, epochs=1000, nonlinearity="ReLU",
         hidden_dim=20, num_hidden=4, scheduler_type="ReduceLROnPlateau",
         loss_function="mse", use_swa=False, optimizer_cls="Adam",
-        use_layer_norm=False, init_type=""
+        use_layer_norm=False, init_type="normal"
 ):
     experiment = Experiment(project_name=project_name, workspace=work_space)
 
