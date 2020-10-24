@@ -43,7 +43,7 @@ base_command = """python train_model.py --project_name {project_name} \
 --nonlinearity {nonlinearity} --scheduler_type {scheduler_type} \
 --batch_size {batch_size} --epochs {epochs} --use_swa {use_swa} \
 --optimizer_cls {optimizer_cls} --use_layer_norm {use_layer_norm} \
---init_type {init_type}"""
+--init_type {init_type} --train_type {train_type}"""
 
 command_cluster = "sbatch -c {0} -t {1} --gpus={2} --job-name={3} run_command.sh"
 
@@ -57,12 +57,13 @@ command_cluster = "sbatch -c {0} -t {1} --gpus={2} --job-name={3} run_command.sh
 @click.option('--work_space', type=str, prompt='Enter workspace name')
 @click.option('--max_epochs', type=int, default=5000)
 @click.option('--max_processes_in_parallel', type=int, default=3)
+@click.option('--train_type', type=str, default="0")  # 0 20 3 23
 @click.option('--train_nets_on_one_gpu', type=int, default=3)  # only for slurm
 def run_optimization(
         project_name, work_space,
         slurm=False, datadir="./", slurm_username="vbelavin",
         algorithm="bayes", max_processes_in_parallel=3,
-        train_nets_on_one_gpu=3, max_epochs=5000
+        train_nets_on_one_gpu=3, max_epochs=5000, train_type="0"
 ):
     optimizer_config["algorithm"] = algorithm
     optimizer = Optimizer(optimizer_config, project_name=project_name)
@@ -75,6 +76,7 @@ def run_optimization(
             project_name=project_name,
             work_space=work_space,
             datadir=datadir,
+            train_type=train_type,
             **parameters["parameters"]
         )
         print(command_to_run)
@@ -93,7 +95,7 @@ def run_optimization(
                 with open("run_command.sh", "w") as file:
                     file.write(base_slurm_command.format(" &\n".join(commands_to_run) + " &\nwait"))
                     process = subprocess.Popen(
-                        command_cluster.format(1, 60 * 12, 1, "juno_dense_net_opt"),  # 1 cpu, 12 hours, 1 gpu
+                        command_cluster.format(3, 60 * 12, 1, "juno_dense_net_opt"),  # 1 cpu, 12 hours, 1 gpu
                         shell=True,
                         close_fds=True,
                         stdout=subprocess.DEVNULL,

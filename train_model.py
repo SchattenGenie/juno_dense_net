@@ -84,11 +84,12 @@ def logging_test_data_all_types(datadir, logger, net, juno_loader, device):
 @click.option('--use_layer_norm', type=bool, default=False)
 @click.option('--optimizer_cls', type=str, default="Adam")
 @click.option('--init_type', type=str, default="normal")
+@click.option('--train_type', type=str, default="0")  # 0 20 3 23
 @click.option('--datadir', type=str, default='./')
 @click.option('--batch_size', type=int, default=512)
 @click.option('--epochs', type=int, default=1000)
 def train(
-        project_name, work_space, datadir="./",
+        project_name, work_space, datadir="./", train_type="0",
         batch_size=512, lr=1e-3, epochs=1000, nonlinearity="ReLU",
         hidden_dim=20, num_hidden=4, scheduler_type="ReduceLROnPlateau",
         loss_function="mse", use_swa=False, optimizer_cls="Adam",
@@ -104,7 +105,7 @@ def train(
         device = torch.device('cpu')
     print("Using device = {}".format(device))
 
-    train_filename = os.path.join(datadir, 'ProcessedTrainReduced0.csv')
+    train_filename = os.path.join(datadir, 'ProcessedTrainReduced{}.csv'.format(train_type))
 
     juno_loader = JunoLoader().fit(train_filename)
     X, y = juno_loader.transform(train_filename)
