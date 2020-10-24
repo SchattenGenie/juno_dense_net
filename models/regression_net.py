@@ -22,12 +22,12 @@ class RegressionNet(nn.Module):
             self.layers = nn.ModuleList([])
             self.layers.append(self.apply_init(nn.Linear(input_size, hidden_dim), init_type=init_type, nonlinearity=nonlinearity))
             if layer_norm:
-                self.layers.append(nn.LayerNorm())
+                self.layers.append(nn.LayerNorm(normalized_shape=hidden_dim))
             self.layers.append(getattr(nn, nonlinearity)())
             for _ in range(num_hidden - 1):
                 self.layers.append(self.apply_init(nn.Linear(hidden_dim, hidden_dim), init_type=init_type, nonlinearity=nonlinearity))
                 if layer_norm:
-                    self.layers.append(nn.LayerNorm())
+                    self.layers.append(nn.LayerNorm(normalized_shape=hidden_dim))
                 self.layers.append(getattr(nn, nonlinearity)())
             self.layers.append(self.apply_init(nn.Linear(hidden_dim, output_size), init_type=init_type, nonlinearity=nonlinearity))
 
