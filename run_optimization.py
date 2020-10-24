@@ -43,8 +43,7 @@ base_command = """python train_model.py --project_name {project_name} \
 --nonlinearity {nonlinearity} --scheduler_type {scheduler_type} \
 --batch_size {batch_size} --epochs {epochs} --use_swa {use_swa} \
 --optimizer_cls {optimizer_cls} --use_layer_norm {use_layer_norm} \
---init_type {init_type}
-"""
+--init_type {init_type}"""
 
 command_cluster = "sbatch -c {0} -t {1} --gpus={2} --job-name={3} run_command.sh"
 
@@ -94,7 +93,7 @@ def run_optimization(
                 with open("run_command.sh", "w") as file:
                     file.write(base_slurm_command.format(" &\n".join(commands_to_run) + " &\nwait"))
                     process = subprocess.Popen(
-                        command_cluster.format(1, 60 * 8, 1, "juno_dense_net_opt"),  # 1 cpu, 8 hours, 1 gpu
+                        command_cluster.format(1, 60 * 12, 1, "juno_dense_net_opt"),  # 1 cpu, 12 hours, 1 gpu
                         shell=True,
                         close_fds=True,
                         stdout=subprocess.DEVNULL,
