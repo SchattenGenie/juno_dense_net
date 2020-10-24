@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-
 import numpy as np
+
 
 class RegressionNet(nn.Module):
     """
@@ -11,22 +11,36 @@ class RegressionNet(nn.Module):
 
     """
 
-    def __init__(self, input_shape, output_size, hidden_dim=40, num_hidden=4, nonlinearity="Tanh", init_type=None):
+    def __init__(self, input_shape, output_size, hidden_dim=40, num_hidden=4, nonlinearity="Tanh", init_type=None, layer_norm=False):
         super(type(self), self).__init__()
         input_size = int(np.prod(input_shape))
         if num_hidden == 0:
             self.layers = nn.ModuleList([
-                nn.Linear(input_size, output_size),
+                apply_init(nn.Linear(input_size, output_size), init_type=init_type, nonlinearity=nonlinearity),
             ])
         else:
-            self.layers = nn.ModuleList([
-                nn.Linear(input_size, hidden_dim),
-                getattr(nn, nonlinearity)()
-            ])
+            self.layers = nn.ModuleList([])
+            self.layers.append(apply_init(nn.Linear(input_size, hidden_dim), init_type=init_type, nonlinearity=nonlinearity))
+            if layer_norm:
+                self.layers.append(nn.LayerNorm())
+            self.layers.append(getattr(nn, nonlinearity)())
             for _ in range(num_hidden - 1):
-                self.layers.append(nn.Linear(hidden_dim, hidden_dim))
+                self.layers.append(apply_init(nn.Linear(hidden_dim, hidden_dim), init_type=init_type, nonlinearity=nonlinearity))
+                if layer_norm:
+                    self.layers.append(nn.LayerNorm())
                 self.layers.append(getattr(nn, nonlinearity)())
-            self.layers.append(nn.Linear(hidden_dim, output_size))
+            self.layers.append(apply_init(nn.Linear(hidden_dim, output_size), init_type=init_type, nonlinearity=nonlinearity))
+
+    def apply_init(self, layer, init_type="normal", nonlinearity="Tanh"):
+        if init_type == "normal":
+            nn.init.xavier_normal_(layer.weight, nn.init.calculate_gain(nonlinearity.lower()))
+        elif init_type == "normal":
+            nn.init.xavier_normal_(layer.weight, nn.init.calculate_gain(nonlinearity.lower()))
+        elif init_type == "orthogonal":
+            nn.init.orthogonal_(layer.weight, nn.init.calculate_gain(nonlinearity.lower()))
+
+        nn.init.constant_(layer.bias, 0.0)
+        return layer
 
     def forward(self, X):
         """

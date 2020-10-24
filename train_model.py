@@ -3,6 +3,7 @@ import traceback
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.swa_utils import AveragedModel, SWALR
 import torch.distributions as distr
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
@@ -16,6 +17,7 @@ from logger.logger import CometLogger
 from utils.dataloader import JunoLoader
 from models.regression_net import RegressionNet
 from utils import loss_functions
+import pickle
 import numpy as np
 import os
 
@@ -40,6 +42,54 @@ def str_to_class(classname: str):
     return getattr(sys.modules[__name__], classname)
 
 
+def logging_test_data_all_types(datadir, logger, net):
+    datatable_predictions = defaultdict(list)
+    for type in ["0", "3", "20", "23"]:
+        test_metrics = []
+        for energy in [
+            '0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8',
+            '0.9', '1', '10', '2', '3', '4', '5', '6', '7', '8', '9'
+        ]:
+            test_filename = os.path.join(datadir, './ProcessedTestReduced{}/{}.csv'.format(type, energy))
+            X_test, y_test = juno_loader.transform(test_filename)
+            X_test = torch.tensor(X_test).float()
+            y_test = torch.tensor(y_test).float()
+            dataset_test = TensorDataset(X_test, y_test)
+            test_loader = torch.utils.data.DataLoader(
+                dataset_test, batch_size=1024, shuffle=False, **dataloader_kwargs
+            )
+            metrics, figures, predictions = logger.log_metrics(
+                net, test_loader, "Test, Type {}, {} MeV".format(type, energy),
+                device
+            )
+            datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy(), predictions]).T
+            test_metrics.append(metrics)
+        logger.log_er_plot(test_metrics)
+    if upload_pickle:
+        with open("datatable_predictions.pkl", 'wb') as f:
+            pickle.dump(datatable_predictions, f)
+        logger._experiment.log_asset("datatable_predictions.pkl", overwrite=True, copy_to_tmp=False)
+
+
+def logging_test_data(datadir, logger, net):
+    test_metrics = []
+    for energy in []:
+        for j in ["0", "3", "20", "23"]:
+            test_filename = os.path.join(datadir, './ProcessedTestReduced3/{}.csv'.format(i))
+            X_test, y_test = juno_loader.transform(test_filename)
+            X_test = torch.tensor(X_test).float()  # .to(device)
+            y_test = torch.tensor(y_test).float()  # .to(device)
+            dataset_test = TensorDataset(X_test, y_test)
+            test_loader = torch.utils.data.DataLoader(
+                dataset_test, batch_size=1024, shuffle=False, **dataloader_kwargs
+            )
+            metrics, figures = logger.log_metrics(net, test_loader, "Test, {} MeV".format(i), device)
+            # todo save predictions
+
+            test_metrics.append(metrics)
+    logger.log_er_plot(test_metrics)
+
+
 @click.command()
 @click.option('--project_name', type=str, prompt='Enter project name')
 @click.option('--work_space', type=str, prompt='Enter workspace name')
@@ -56,7 +106,8 @@ def train(
         project_name, work_space, datadir="./",
         batch_size=512, lr=1e-3, epochs=1000, nonlinearity="ReLU",
         hidden_dim=20, num_hidden=4, scheduler_type="ReduceLROnPlateau",
-        loss_function="mse"
+        loss_function="mse", use_swa=False, optimizer_cls="Adam",
+        use_layer_norm=False, init_type=""
 ):
     experiment = Experiment(project_name=project_name, workspace=work_space)
 
@@ -92,11 +143,22 @@ def train(
     net = RegressionNet(
         input_shape=X.shape[1], output_size=1,
         hidden_dim=hidden_dim, num_hidden=num_hidden,
-        nonlinearity=nonlinearity
+        nonlinearity=nonlinearity, layer_norm=use_layer_norm,
+        init_type=init_type
     ).to(device)
 
     loss_function = getattr(loss_functions, loss_function)
-    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    if optimizer_cls == "SGD":
+        optimizer = getattr(torch.optim, optimizer_cls)(net.parameters(), lr=lr, momentum=0.9)
+    else:
+        optimizer = getattr(torch.optim, optimizer_cls)(net.parameters(), lr=lr)
+
+    swa_net = None
+    swa_scheduler = None
+    swa_start_epoch = int(0.75 * epochs)
+    if use_swa:
+        swa_net = AveragedModel(net)
+        swa_scheduler = SWALR(optimizer, swa_lr=0.05)
 
     if scheduler_type == "ReduceLROnPlateau":
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.8, patience=5)
@@ -111,38 +173,43 @@ def train(
     for epoch in range(epochs):
         print("Epoch {}".format(epoch))
         experiment.set_epoch(epoch)
-        mean_loss_train = perform_epoch(net, train_loader, loss_function, device=device, optimizer=optimizer)
-        mean_loss_val = perform_epoch(net, val_loader, loss_function, device=device)
-        logger.log_metrics(net, train_loader, "Train", device)
-        logger.log_metrics(net, val_loader, "Validation", device)
+        _ = perform_epoch(net, train_loader, loss_function, device=device, optimizer=optimizer)
+        if use_swa and epoch > swa_start_epoch:
+            mean_loss_val = perform_epoch(swa_net, val_loader, loss_function, device=device)
+            logger.log_metrics(swa_net, train_loader, "Train", device)
+            logger.log_metrics(swa_net, val_loader, "Validation", device)
+        else:
+            mean_loss_val = perform_epoch(net, val_loader, loss_function, device=device)
+            logger.log_metrics(net, train_loader, "Train", device)
+            logger.log_metrics(net, val_loader, "Validation", device)
+
         experiment.log_metric("validation_loss", mean_loss_val)
-        if scheduler is not None:
-            if isinstance(scheduler, torch.optim.lr_scheduler.CosineAnnealingLR):
-                scheduler.step()
-            else:
-                scheduler.step(mean_loss_val)
-        # save weights
+        if use_swa and epoch > swa_start_epoch:
+            swa_net.update_parameters(net)
+            swa_scheduler.step()
+            torch.optim.swa_utils.update_bn(train_loader, swa_net)
+        else:
+            if scheduler is not None:
+                if isinstance(scheduler, torch.optim.lr_scheduler.CosineAnnealingLR):
+                    scheduler.step()
+                else:
+                    scheduler.step(mean_loss_val)
+
+        # save weights and test on test
         if mean_loss_val < best_loss:
             best_loss = mean_loss_val
-            best_weights = net.state_dict()
+            if use_swa and epoch > swa_start_epoch:
+                best_weights = swa_net.state_dict()
+            else:
+                best_weights = net.state_dict()
             torch.save(best_weights, './juno_net_weights_{}.pt'.format(key))
-            experiment.log_model('juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key))
-
-        if epoch % 10:
-            test_metrics = []
-            for i in range(11):
-                test_filename = os.path.join(datadir, './ProcessedTest{}.csv'.format(i))
-                X_test, y_test = juno_loader.transform(test_filename)
-                X_test = torch.tensor(X_test).float()  # .to(device)
-                y_test = torch.tensor(y_test).float()  # .to(device)
-                dataset_test = TensorDataset(X_test, y_test)
-                test_loader = torch.utils.data.DataLoader(
-                    dataset_test, batch_size=batch_size, shuffle=False, **dataloader_kwargs
-                )
-                metrics, figures = logger.log_metrics(net, test_loader, "Test, {} MeV".format(i), device)
-                test_metrics.append(metrics)
-            logger.log_er_plot(test_metrics)
-            # collect all metrics on test
+            experiment.log_model(
+                'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
+            )
+            if use_swa and epoch > swa_start_epoch:
+                logging_test_data_all_types(datadir=datadir, logger=logger, net=swa_net)
+            else:
+                logging_test_data_all_types(datadir=datadir, logger=logger, net=net)
 
 
 if __name__ == "__main__":
