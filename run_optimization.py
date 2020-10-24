@@ -25,6 +25,7 @@ optimizer_config = {
         "batch_size": {"min": 128, "max": 1024, "type": "integer", "scalingType": "uniform"},
         "scheduler_type": {"type": "categorical", "values": ["ReduceLROnPlateau", "CosineAnnealingLR", "None"]},
         "loss_function": {"type": "categorical", "values": ["mse", "mae", "energy_resolution_mse"]},
+        "use_layer_norm": {"type": "categorical", "values": ["True", "False"]},
         "use_swa": {"type": "categorical", "values": ["True", "False"]},
         "optimizer_cls": {"type": "categorical", "values": ["Adam", "RMSprop", "Adagrad", "SGD"]},
         "init_type": {"type": "categorical", "values": ["normal", "uniform", "orthogonal"]}

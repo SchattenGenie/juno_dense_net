@@ -20,16 +20,16 @@ class RegressionNet(nn.Module):
             ])
         else:
             self.layers = nn.ModuleList([])
-            self.layers.append(apply_init(nn.Linear(input_size, hidden_dim), init_type=init_type, nonlinearity=nonlinearity))
+            self.layers.append(self.apply_init(nn.Linear(input_size, hidden_dim), init_type=init_type, nonlinearity=nonlinearity))
             if layer_norm:
                 self.layers.append(nn.LayerNorm())
             self.layers.append(getattr(nn, nonlinearity)())
             for _ in range(num_hidden - 1):
-                self.layers.append(apply_init(nn.Linear(hidden_dim, hidden_dim), init_type=init_type, nonlinearity=nonlinearity))
+                self.layers.append(self.apply_init(nn.Linear(hidden_dim, hidden_dim), init_type=init_type, nonlinearity=nonlinearity))
                 if layer_norm:
                     self.layers.append(nn.LayerNorm())
                 self.layers.append(getattr(nn, nonlinearity)())
-            self.layers.append(apply_init(nn.Linear(hidden_dim, output_size), init_type=init_type, nonlinearity=nonlinearity))
+            self.layers.append(self.apply_init(nn.Linear(hidden_dim, output_size), init_type=init_type, nonlinearity=nonlinearity))
 
     def apply_init(self, layer, init_type="normal", nonlinearity="Tanh"):
         if init_type == "normal":

@@ -60,7 +60,7 @@ class Logger(object):
         std_er = normed_predictions.std().item()
         f = plt.figure(figsize=(8, 6), dpi=100)
         plt.title("Histogram (E - E_pred) / E, {}".format(name))
-        plt.hist(normed_predictions.cpu().detach().numpy(), bins=100, density=True)
+        plt.hist(normed_predictions.cpu().detach().numpy(), bins=100, density=True, lw=0)
         x = [i * 0.01 for i in np.arange(-100, 100)]
         y = norm.pdf(x, mean_er, std_er)
         plt.plot(x, y)

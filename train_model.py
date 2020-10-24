@@ -42,7 +42,8 @@ def str_to_class(classname: str):
     return getattr(sys.modules[__name__], classname)
 
 
-def logging_test_data_all_types(datadir, logger, net):
+def logging_test_data_all_types(datadir, logger, net, juno_loader, device):
+    from collections import defaultdict
     datatable_predictions = defaultdict(list)
     for type in ["0", "3", "20", "23"]:
         test_metrics = []
@@ -50,25 +51,24 @@ def logging_test_data_all_types(datadir, logger, net):
             '0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8',
             '0.9', '1', '10', '2', '3', '4', '5', '6', '7', '8', '9'
         ]:
-            test_filename = os.path.join(datadir, './ProcessedTestReduced{}/{}.csv'.format(type, energy))
+            test_filename = os.path.join(datadir, './ProcessedTestReduced{}/{}MeV.csv'.format(type, energy))
             X_test, y_test = juno_loader.transform(test_filename)
             X_test = torch.tensor(X_test).float()
             y_test = torch.tensor(y_test).float()
             dataset_test = TensorDataset(X_test, y_test)
             test_loader = torch.utils.data.DataLoader(
-                dataset_test, batch_size=1024, shuffle=False, **dataloader_kwargs
+                dataset_test, batch_size=1024, shuffle=False  # **dataloader_kwargs
             )
             metrics, figures, predictions = logger.log_metrics(
                 net, test_loader, "Test, Type {}, {} MeV".format(type, energy),
                 device
             )
-            datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy(), predictions]).T
+            datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy().reshape(-1), predictions.reshape(-1)]).T
             test_metrics.append(metrics)
         logger.log_er_plot(test_metrics)
-    if upload_pickle:
-        with open("datatable_predictions.pkl", 'wb') as f:
-            pickle.dump(datatable_predictions, f)
-        logger._experiment.log_asset("datatable_predictions.pkl", overwrite=True, copy_to_tmp=False)
+    with open("datatable_predictions.pkl", 'wb') as f:
+        pickle.dump(datatable_predictions, f)
+    logger._experiment.log_asset("datatable_predictions.pkl", overwrite=True, copy_to_tmp=False)
 
 
 @click.command()
@@ -104,7 +104,7 @@ def train(
         device = torch.device('cpu')
     print("Using device = {}".format(device))
 
-    train_filename = os.path.join(datadir, 'ProcessedTrain0.csv')
+    train_filename = os.path.join(datadir, 'ProcessedTrainReduced0.csv')
 
     juno_loader = JunoLoader().fit(train_filename)
     X, y = juno_loader.transform(train_filename)
@@ -192,9 +192,9 @@ def train(
                 'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
             )
             if use_swa and epoch > swa_start_epoch:
-                logging_test_data_all_types(datadir=datadir, logger=logger, net=swa_net)
+                logging_test_data_all_types(datadir=datadir, logger=logger, net=swa_net, juno_loader=juno_loader, device=device)
             else:
-                logging_test_data_all_types(datadir=datadir, logger=logger, net=net)
+                logging_test_data_all_types(datadir=datadir, logger=logger, net=net, juno_loader=juno_loader, device=device)
 
 
 if __name__ == "__main__":

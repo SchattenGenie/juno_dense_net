@@ -5,7 +5,7 @@ import numpy as np
 
 class JunoLoader:
     def __init__(self):
-        self._columns = ['R_c_lpmt', 'z_c_lpmt', 'std', 'mean', 'allHits_lpmt']
+        self._columns = ['R_lmpt', 'z_c_lpmt', 'ht_std', 'ht_mean', 'allHits_lpmt']
         self._mean = [8., 0., 76., 122., 9705.]
         self._std = [3., 6., 10.5, 10., 4851.]
 
