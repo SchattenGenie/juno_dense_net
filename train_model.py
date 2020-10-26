@@ -46,13 +46,14 @@ def str_to_class(classname: str):
 @profile
 def logging_test_data_all_types(logger, net, test_data, device):
     from collections import defaultdict
+    energies = [
+            '0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8',
+            '0.9', '1', '10', '2', '3', '4', '5', '6', '7', '8', '9'
+        ]
     datatable_predictions = defaultdict(list)
     for type in tqdm(["0", "3", "20", "23"]):
         test_metrics = []
-        for energy in [
-            '0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8',
-            '0.9', '1', '10', '2', '3', '4', '5', '6', '7', '8', '9'
-        ]:
+        for energy in energies:
             X_test, y_test = test_data[(type, energy)]
             metrics, figures, predictions = logger.log_metrics(
                 net,
@@ -62,7 +63,7 @@ def logging_test_data_all_types(logger, net, test_data, device):
             )
             datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy().reshape(-1), predictions.reshape(-1)]).T
             test_metrics.append(metrics)
-        logger.log_er_plot(test_metrics, type)
+        logger.log_er_plot(energies, test_metrics, type)
     with open("datatable_predictions.pkl", 'wb') as f:
         pickle.dump(datatable_predictions, f)
     logger._experiment.log_asset("datatable_predictions.pkl", overwrite=True, copy_to_tmp=False)

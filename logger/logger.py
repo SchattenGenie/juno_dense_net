@@ -80,12 +80,12 @@ class Logger(object):
         return mean_er, std_er, f
 
     @profile
-    def log_er_plot(self, metrics, type):
-        er = [metrics[i]["std_er"] for i in range(11)]
+    def log_er_plot(self, energies, metrics, type):
+        er = [metrics[i]["std_er"] for i in range(len(energies))]
 
         f = plt.figure(figsize=(6, 6))
         plt.title("ER plot, Type {}".format(type))
-        plt.plot(np.arange(11), er)
+        plt.scatter([float(e) for e in energies], er)
         plt.ylabel(r"\sigma / E")
         plt.xlabel(r"E (MeV)")
         return f
@@ -114,7 +114,7 @@ class CometLogger(Logger):
         return metrics, figures, predictions
 
     @profile
-    def log_er_plot(self, metrics, type):
-        f = super(CometLogger, self).log_er_plot(metrics, type)
-        self._experiment.log_figure("Energy resolution", f, overwrite=True)
+    def log_er_plot(self, energies, metrics, type):
+        f = super(CometLogger, self).log_er_plot(energies, metrics, type)
+        self._experiment.log_figure("Energy resolution, Type {}".format(type), f)
         plt.close(f)
