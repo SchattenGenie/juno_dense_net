@@ -62,7 +62,7 @@ def logging_test_data_all_types(logger, net, test_data, device):
             )
             datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy().reshape(-1), predictions.reshape(-1)]).T
             test_metrics.append(metrics)
-        logger.log_er_plot(test_metrics)
+        logger.log_er_plot(test_metrics, type)
     with open("datatable_predictions.pkl", 'wb') as f:
         pickle.dump(datatable_predictions, f)
     logger._experiment.log_asset("datatable_predictions.pkl", overwrite=True, copy_to_tmp=False)
