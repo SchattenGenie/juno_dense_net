@@ -12,10 +12,12 @@ from tqdm.notebook import tqdm
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 import click
-from utils.utils import perform_epoch
+from utils.utils import perform_epoch, CustomDataLoader
+from sklearn.model_selection import train_test_split
 from logger.logger import CometLogger
 from utils.dataloader import JunoLoader
 from models.regression_net import RegressionNet
+from collections import defaultdict
 from utils import loss_functions
 import pickle
 import numpy as np
@@ -41,26 +43,21 @@ def str_to_class(classname: str):
     """
     return getattr(sys.modules[__name__], classname)
 
-
-def logging_test_data_all_types(datadir, logger, net, juno_loader, device):
+@profile
+def logging_test_data_all_types(logger, net, test_data, device):
     from collections import defaultdict
     datatable_predictions = defaultdict(list)
-    for type in ["0", "3", "20", "23"]:
+    for type in tqdm(["0", "3", "20", "23"]):
         test_metrics = []
         for energy in [
             '0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8',
             '0.9', '1', '10', '2', '3', '4', '5', '6', '7', '8', '9'
         ]:
-            test_filename = os.path.join(datadir, './ProcessedTestReduced{}/{}MeV.csv'.format(type, energy))
-            X_test, y_test = juno_loader.transform(test_filename)
-            X_test = torch.tensor(X_test).float()
-            y_test = torch.tensor(y_test).float()
-            dataset_test = TensorDataset(X_test, y_test)
-            test_loader = torch.utils.data.DataLoader(
-                dataset_test, batch_size=1024, shuffle=False  # **dataloader_kwargs
-            )
+            X_test, y_test = test_data[(type, energy)]
             metrics, figures, predictions = logger.log_metrics(
-                net, test_loader, "Test, Type {}, {} MeV".format(type, energy),
+                net,
+                (X_test, y_test),
+                "Test, Type {}, {} MeV".format(type, energy),
                 device
             )
             datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy().reshape(-1), predictions.reshape(-1)]).T
@@ -88,6 +85,7 @@ def logging_test_data_all_types(datadir, logger, net, juno_loader, device):
 @click.option('--datadir', type=str, default='./')
 @click.option('--batch_size', type=int, default=512)
 @click.option('--epochs', type=int, default=1000)
+@profile
 def train(
         project_name, work_space, datadir="./", train_type="0",
         batch_size=512, lr=1e-3, epochs=1000, nonlinearity="ReLU",
@@ -95,37 +93,56 @@ def train(
         loss_function="mse", use_swa=False, optimizer_cls="Adam",
         use_layer_norm=False, init_type="normal"
 ):
+    # comet logger instance preparation
     experiment = Experiment(project_name=project_name, workspace=work_space)
-
     logger = CometLogger(experiment)
 
+    # initialization of cuda device
     if torch.cuda.is_available():
         device = torch.device('cuda:{}'.format(get_freer_gpu()))
     else:
         device = torch.device('cpu')
     print("Using device = {}".format(device))
 
+    # data preparation
+    # all data is stored on gpu, because it weights not so much
     train_filename = os.path.join(datadir, 'ProcessedTrainReduced{}.csv'.format(train_type))
-
     juno_loader = JunoLoader().fit(train_filename)
     X, y = juno_loader.transform(train_filename)
-    X = torch.tensor(X).float()  # .to(device)
-    y = torch.tensor(y).float()  # .to(device)
+    X = torch.tensor(X).float().to(device)
+    y = torch.tensor(y).float().to(device)
 
-    dataset = TensorDataset(X, y)
-    dataset_train, dataset_val = torch.utils.data.random_split(
-        dataset,
-        (int(len(dataset) * 0.9), len(dataset) - int(len(dataset) * 0.9)),
-    )
+    train_idx, val_idx = train_test_split(np.arange(len(X)), test_size=0.1, random_state=42, shuffle=True)
+    X_train, X_val = X[train_idx], X[val_idx]
+    y_train, y_val = y[train_idx], y[val_idx]
 
-    dataloader_kwargs = {}  # {'num_workers': 0, 'pin_memory': True} if USE_CUDA else {}
-    train_loader = torch.utils.data.DataLoader(
-        dataset_train, batch_size=batch_size, shuffle=True, **dataloader_kwargs
-    )
-    val_loader = torch.utils.data.DataLoader(
-        dataset_val, batch_size=batch_size, shuffle=True, **dataloader_kwargs
-    )
+    train_loader = CustomDataLoader(X_train, y_train, batch_size=batch_size)
+    val_loader = CustomDataLoader(X_val, y_val, batch_size=batch_size)
 
+    # dataset_train = TensorDataset(X_train, y_train)
+    # dataset_val = TensorDataset(X_val, y_val)
+    # dataloader_kwargs = {'num_workers': 0, 'pin_memory': True}  # {'num_workers': 0, 'pin_memory': True} if USE_CUDA else {}
+    #train_loader = torch.utils.data.DataLoader(
+    #    dataset_train, batch_size=batch_size, shuffle=True, **dataloader_kwargs
+    #)
+    #val_loader = torch.utils.data.DataLoader(
+    #    dataset_val, batch_size=batch_size, shuffle=True, **dataloader_kwargs
+    #)
+
+    # loading test data
+    test_data = defaultdict(list)
+    for type in ["0", "3", "20", "23"]:
+        for energy in [
+            '0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8',
+            '0.9', '1', '10', '2', '3', '4', '5', '6', '7', '8', '9'
+        ]:
+            test_filename = os.path.join(datadir, './ProcessedTestReduced{}/{}MeV.csv'.format(type, energy))
+            X_test, y_test = juno_loader.transform(test_filename)
+            X_test = torch.tensor(X_test).float()
+            y_test = torch.tensor(y_test).float()
+            test_data[(type, energy)] = (X_test, y_test)
+
+    # setting up network
     net = RegressionNet(
         input_shape=X.shape[1], output_size=1,
         hidden_dim=hidden_dim, num_hidden=num_hidden,
@@ -133,6 +150,7 @@ def train(
         init_type=init_type
     ).to(device)
 
+    # setting up various optimizations techniques
     loss_function = getattr(loss_functions, loss_function)
     if optimizer_cls == "SGD":
         optimizer = getattr(torch.optim, optimizer_cls)(net.parameters(), lr=lr, momentum=0.9)
@@ -193,9 +211,9 @@ def train(
                 'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
             )
             if use_swa and epoch > swa_start_epoch:
-                logging_test_data_all_types(datadir=datadir, logger=logger, net=swa_net, juno_loader=juno_loader, device=device)
+                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, device=device)
             else:
-                logging_test_data_all_types(datadir=datadir, logger=logger, net=net, juno_loader=juno_loader, device=device)
+                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, device=device)
 
 
 if __name__ == "__main__":

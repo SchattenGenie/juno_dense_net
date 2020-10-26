@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
 import torch
-sns.set(context='paper', style="whitegrid", font_scale=2)
+from torch.utils.data import TensorDataset, DataLoader
+sns.set(context='paper', style="whitegrid", font_scale=1.5)
+LOG_HIST = False
 
 
 def warn():
@@ -24,18 +26,25 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 class Logger(object):
+    @profile
     def log_metrics(self, net, loader, name: str, device: str):
         y_true = []
         y_pred = []
+
         with torch.no_grad():
-            for X, y in tqdm(loader):
-                X = X.to(device)
-                y = y.to(device)
-                preds = net(X)
-                y_pred.append(preds.cpu().view(-1))
-                y_true.append(y.cpu().view(-1))
-        y_pred = torch.cat(y_pred).view(-1)
-        y_true = torch.cat(y_true).view(-1)
+            if isinstance(loader, tuple):
+                X_test, y_true = loader
+                y_true = y_true.view(-1).to(device)
+                y_pred = net(X_test.to(device)).view(-1)
+            else:
+                for X, y in tqdm(loader):
+                    X = X.to(device)
+                    y = y.to(device)
+                    preds = net(X)
+                    y_pred.append(preds.cpu().view(-1))
+                    y_true.append(y.cpu().view(-1))
+                y_pred = torch.cat(y_pred).view(-1)
+                y_true = torch.cat(y_true).view(-1)
 
         metrics = {}
         figures = {}
@@ -54,22 +63,27 @@ class Logger(object):
     def _mae(self, y_true, y_pred):
         return (y_true - y_pred).abs().mean().item()
 
+    @profile
     def _energy_resolution_gaussian_fit(self, y_true, y_pred, name):
         normed_predictions = (y_true - y_pred) / y_true
         mean_er = normed_predictions.mean().item()
         std_er = normed_predictions.std().item()
-        f = plt.figure(figsize=(8, 6), dpi=100)
-        plt.title("Histogram (E - E_pred) / E, {}".format(name))
-        plt.hist(normed_predictions.cpu().detach().numpy(), bins=100, density=True, lw=0)
-        x = [i * 0.01 for i in np.arange(-100, 100)]
-        y = norm.pdf(x, mean_er, std_er)
-        plt.plot(x, y)
+        if LOG_HIST == True:
+            f = plt.figure(figsize=(6, 6))
+            plt.title("Histogram (E - E_pred) / E, {}".format(name))
+            plt.hist(normed_predictions.cpu().detach().numpy(), bins=30, density=True, histtype='step')
+            x = [i * 0.01 for i in np.arange(-100, 100)]
+            y = norm.pdf(x, mean_er, std_er)
+            plt.plot(x, y)
+        else:
+            f = None
         return mean_er, std_er, f
 
+    @profile
     def log_er_plot(self, metrics):
         er = [metrics[i]["std_er"] for i in range(11)]
 
-        f = plt.figure(figsize=(8, 6), dpi=100)
+        f = plt.figure(figsize=(6, 6))
         plt.title("ER plot")
         plt.plot(np.arange(11), er)
         plt.ylabel(r"\sigma / E")
@@ -86,9 +100,11 @@ class CometLogger(Logger):
         self._experiment = experiment
         super(CometLogger, self).__init__()
 
+    @profile
     def log_metrics(self, net, loader, name, device):
         metrics, figures, predictions = super(CometLogger, self).log_metrics(net, loader, name, device)
-        self._experiment.log_figure("Histogram (E - E_pred) / E, {}".format(name), figures["gaussian"], overwrite=True)
+        if LOG_HIST == True:
+            self._experiment.log_figure("Histogram (E - E_pred) / E, {}".format(name), figures["gaussian"], overwrite=True)
         self._experiment.log_metric("MSE, {}".format(name), metrics["mse"])
         self._experiment.log_metric("MAE, {}".format(name), metrics["mae"])
         self._experiment.log_metric("Gaussian mean for (E - E_pred) / E, {}".format(name), metrics["mean_er"])
@@ -97,6 +113,7 @@ class CometLogger(Logger):
 
         return metrics, figures, predictions
 
+    @profile
     def log_er_plot(self, metrics):
         f = super(CometLogger, self).log_er_plot(metrics)
         self._experiment.log_figure("Energy resolution", f, overwrite=True)

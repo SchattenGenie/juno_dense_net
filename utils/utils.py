@@ -1,4 +1,5 @@
 from tqdm import tqdm
+import numpy as np
 import torch
 
 
@@ -31,6 +32,25 @@ class NullContext:
         pass
 
 
+class CustomDataLoader:
+    def __init__(self, X, y, batch_size=100):
+        self._X = X
+        self._y = y
+        self._batch_size = batch_size
+
+    def __iter__(self):
+        n = len(self._X)
+        indicies = np.arange(n)
+        np.random.shuffle(indicies)
+        for idx in range(0, n, self._batch_size):
+            yield self._X[indicies[idx:min(idx + self._batch_size, n)]], self._y[
+                indicies[idx:min(idx + self._batch_size, n)]]
+        return self
+
+    def __len__(self):
+        return len(self._X) // self._batch_size + 1
+
+@profile
 def perform_epoch(model, loader, loss_function, device, optimizer=None):
     """
 
@@ -52,8 +72,8 @@ def perform_epoch(model, loader, loss_function, device, optimizer=None):
             batch_size = X.shape[0]
             cum_batch_size += batch_size
 
-            X = X.to(device)
-            y = y.to(device)
+            X = X
+            y = y
 
             preds = model(X)
             loss = loss_function(preds, y)
