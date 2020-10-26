@@ -26,7 +26,6 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 class Logger(object):
-    @profile
     def log_metrics(self, net, loader, name: str, device: str):
         y_true = []
         y_pred = []
@@ -63,7 +62,6 @@ class Logger(object):
     def _mae(self, y_true, y_pred):
         return (y_true - y_pred).abs().mean().item()
 
-    @profile
     def _energy_resolution_gaussian_fit(self, y_true, y_pred, name):
         normed_predictions = (y_true - y_pred) / y_true
         mean_er = normed_predictions.mean().item()
@@ -79,7 +77,6 @@ class Logger(object):
             f = None
         return mean_er, std_er, f
 
-    @profile
     def log_er_plot(self, energies, metrics, type):
         er = [metrics[i]["std_er"] for i in range(len(energies))]
 
@@ -100,7 +97,6 @@ class CometLogger(Logger):
         self._experiment = experiment
         super(CometLogger, self).__init__()
 
-    @profile
     def log_metrics(self, net, loader, name, device):
         metrics, figures, predictions = super(CometLogger, self).log_metrics(net, loader, name, device)
         if LOG_HIST == True:
@@ -113,7 +109,6 @@ class CometLogger(Logger):
 
         return metrics, figures, predictions
 
-    @profile
     def log_er_plot(self, energies, metrics, type):
         f = super(CometLogger, self).log_er_plot(energies, metrics, type)
         self._experiment.log_figure("Energy resolution, Type {}".format(type), f)

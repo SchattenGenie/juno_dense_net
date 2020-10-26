@@ -43,7 +43,6 @@ def str_to_class(classname: str):
     """
     return getattr(sys.modules[__name__], classname)
 
-@profile
 def logging_test_data_all_types(logger, net, test_data, device):
     from collections import defaultdict
     energies = [
@@ -86,7 +85,6 @@ def logging_test_data_all_types(logger, net, test_data, device):
 @click.option('--datadir', type=str, default='./')
 @click.option('--batch_size', type=int, default=512)
 @click.option('--epochs', type=int, default=1000)
-@profile
 def train(
         project_name, work_space, datadir="./", train_type="0",
         batch_size=512, lr=1e-3, epochs=1000, nonlinearity="ReLU",

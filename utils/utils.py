@@ -50,7 +50,6 @@ class CustomDataLoader:
     def __len__(self):
         return len(self._X) // self._batch_size + 1
 
-@profile
 def perform_epoch(model, loader, loss_function, device, optimizer=None):
     """
 
