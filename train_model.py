@@ -31,8 +31,10 @@ def get_freer_gpu():
     """
     os.system('nvidia-smi -q -d Memory |grep -A4 GPU|grep Free >tmp')
     memory_available = [int(x.split()[2]) for x in open('tmp', 'r').readlines()]
-    return np.argmax(memory_available)
-
+    try:
+        return np.argmax(memory_available)
+    except ValueError:
+        return "0"
 
 def str_to_class(classname: str):
     """
@@ -81,7 +83,7 @@ def logging_test_data_all_types(logger, net, test_data, key, device):
 @click.option('--use_layer_norm', type=bool, default=False)
 @click.option('--optimizer_cls', type=str, default="Adam")
 @click.option('--init_type', type=str, default="normal")
-@click.option('--target_variable', type=str, default="Edep") # Edep, edepX, edepY, edepZ
+@click.option('--target_variable', type=str, default="Edep") # energy, coordinates
 @click.option('--train_type', type=str, default="0")  # 0 20 3 23
 @click.option('--datadir', type=str, default='./')
 @click.option('--batch_size', type=int, default=512)
