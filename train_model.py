@@ -14,7 +14,7 @@ from tqdm import tqdm
 import click
 from utils.utils import perform_epoch, CustomDataLoader
 from sklearn.model_selection import train_test_split
-from logger.logger import CometLogger
+from logger.logger import CometLogger, CometLoggerVertex
 from utils.dataloader import JunoLoader
 from models.regression_net import RegressionNet
 from collections import defaultdict
@@ -22,7 +22,8 @@ from utils import loss_functions
 import pickle
 import numpy as np
 import os
-
+ENERGY = "energy"
+VERTEX = "vertex"
 
 def get_freer_gpu():
     """
@@ -45,7 +46,7 @@ def str_to_class(classname: str):
     """
     return getattr(sys.modules[__name__], classname)
 
-def logging_test_data_all_types(logger, net, test_data, key, device):
+def logging_test_data_all_types(logger, net, test_data, key, target_variable, device):
     from collections import defaultdict
     energies = [
             '0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8',
@@ -62,7 +63,9 @@ def logging_test_data_all_types(logger, net, test_data, key, device):
                 "Test, Type {}, {} MeV".format(type, energy),
                 device
             )
-            datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy().reshape(-1), predictions.reshape(-1)]).T
+            if target_variable == ENERGY: shape = (-1, )
+            elif target_variable == VERTEX: shape = (3, -1)
+            datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy().reshape(*shape), predictions.reshape(*shape)]).T
             test_metrics.append(metrics)
         logger.log_er_plot(energies, test_metrics, type)
     with open("datatable_predictions_{}.pkl".format(key), 'wb') as f:
@@ -83,7 +86,7 @@ def logging_test_data_all_types(logger, net, test_data, key, device):
 @click.option('--use_layer_norm', type=bool, default=False)
 @click.option('--optimizer_cls', type=str, default="Adam")
 @click.option('--init_type', type=str, default="normal")
-@click.option('--target_variable', type=str, default="Edep") # energy, coordinates
+@click.option('--target_variable', type=str, default="energy") # energy, vertex
 @click.option('--train_type', type=str, default="0")  # 0 20 3 23
 @click.option('--datadir', type=str, default='./')
 @click.option('--batch_size', type=int, default=512)
@@ -93,11 +96,19 @@ def train(
         batch_size=512, lr=1e-3, epochs=1000, nonlinearity="ReLU",
         hidden_dim=20, num_hidden=4, scheduler_type="ReduceLROnPlateau",
         loss_function="mse", use_swa=False, optimizer_cls="Adam",
-        use_layer_norm=False, init_type="normal", target_variable="Edep"
+        use_layer_norm=False, init_type="normal", target_variable=ENERGY
 ):
     # comet logger instance preparation
-    experiment = Experiment(project_name=project_name, workspace=work_space, auto_metric_logging=False)
-    logger = CometLogger(experiment)
+    experiment = Experiment(
+        project_name=project_name, workspace=work_space,
+        auto_metric_logging=False, auto_log_co2=False, auto_output_logging="simple"
+    )
+    if target_variable == ENERGY:
+        logger = CometLogger(experiment)
+    elif target_variable == VERTEX:
+        logger = CometLoggerVertex(experiment)
+    else:
+        raise ValueError()
 
     # initialization of cuda device
     if torch.cuda.is_available():
@@ -145,8 +156,12 @@ def train(
             test_data[(type, energy)] = (X_test, y_test)
 
     # setting up network
+    if target_variable == ENERGY:
+        output_size = 1
+    elif target_variable == VERTEX:
+        output_size = 3
     net = RegressionNet(
-        input_shape=X.shape[1], output_size=1,
+        input_shape=X.shape[1], output_size=output_size,
         hidden_dim=hidden_dim, num_hidden=num_hidden,
         nonlinearity=nonlinearity, layer_norm=use_layer_norm,
         init_type=init_type
@@ -177,12 +192,14 @@ def train(
     best_loss = 1e3
     not_yet_logged = True
     last_logged = 0
-    throttling_pace = 15
+    throttling_pace = 3
     key = experiment.get_key()
+    experiment.set_step(0)
     for epoch in range(epochs):
+        print(last_logged, not_yet_logged)
         print("Epoch {}".format(epoch))
-        experiment.set_epoch(epoch)
-        _ = perform_epoch(net, train_loader, loss_function, device=device, optimizer=optimizer)
+        experiment.set_step(1 + epoch)
+        _ = perform_epoch(net, train_loader, loss_function, device=device, optimizer=optimizer, epoch=epoch)
         if use_swa and epoch > swa_start_epoch:
             mean_loss_val = perform_epoch(swa_net, val_loader, loss_function, device=device)
             logger.log_metrics(swa_net, train_loader, "Train", device)
@@ -223,9 +240,9 @@ def train(
                 'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
             )
             if use_swa and epoch > swa_start_epoch:
-                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device)
+                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device, target_variable=target_variable)
             else:
-                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, key=key, device=device)
+                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, key=key, device=device, target_variable=target_variable)
             last_logged = 0
             not_yet_logged = False
         last_logged += 1
@@ -237,9 +254,9 @@ def train(
                 'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
             )
             if use_swa and epoch > swa_start_epoch:
-                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device)
+                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device, target_variable=target_variable)
             else:
-                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, key=key, device=device)
+                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, key=key, device=device, target_variable=target_variable)
             last_logged = 0
             not_yet_logged = False
 

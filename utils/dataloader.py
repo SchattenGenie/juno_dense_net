@@ -4,9 +4,12 @@ import numpy as np
 
 
 class JunoLoader:
-    def __init__(self, target_variable="Edep"):  # edepX, edepY, edepZ
+    def __init__(self, target_variable="energy"):  # energy vertex
         self._columns = ['R_lmpt', 'x_c_lpmt', 'y_c_lpmt', 'z_c_lpmt', 'ht_std', 'ht_mean', 'allHits_lpmt']
-        self._target_variable = target_variable
+        if target_variable == "energy":
+            self._target_variable = "Edep"
+        elif target_variable == "vertex":
+            self._target_variable = ["edepX", "edepY", "edepZ"]
         self._mean = [8., 0., 0., 0., 76., 122., 9705.]
         self._std = [3., 6., 6., 6., 10.5, 10., 4851.]
 

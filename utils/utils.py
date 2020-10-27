@@ -50,7 +50,7 @@ class CustomDataLoader:
     def __len__(self):
         return len(self._X) // self._batch_size + 1
 
-def perform_epoch(model, loader, loss_function, device, optimizer=None):
+def perform_epoch(model, loader, loss_function, device, optimizer=None, epoch=None):
     """
 
     Performs one training or testing epoch, returns a tuple of mean loss and mean accuracy.\
@@ -75,7 +75,7 @@ def perform_epoch(model, loader, loss_function, device, optimizer=None):
             y = y
 
             preds = model(X)
-            loss = loss_function(preds, y)
+            loss = loss_function(preds, y, epoch=epoch)
             cum_loss += loss.item() * batch_size
 
             if is_train:

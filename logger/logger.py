@@ -24,6 +24,63 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
+class LoggerVertex(object):
+    def log_metrics(self, net, loader, name: str, device: str):
+        y_true = []
+        y_pred = []
+
+        with torch.no_grad():
+            if isinstance(loader, tuple):
+                X_test, y_true = loader
+                y_true = y_true.to(device)
+                y_pred = net(X_test.to(device))
+            else:
+                for X, y in tqdm(loader):
+                    X = X.to(device)
+                    y = y.to(device)
+                    preds = net(X)
+                    y_pred.append(preds.cpu())
+                    y_true.append(y.cpu())
+                y_pred = torch.cat(y_pred)
+                y_true = torch.cat(y_true)
+
+        metrics = {}
+        figures = {}
+        for i in range(3):
+            metrics["mse_{}".format(i)] = self._mse(y_true[:, i], y_pred[:, i])
+            metrics["mae_{}".format(i)] = self._mae(y_true[:, i], y_pred[:, i])
+
+        return metrics, figures, y_pred.detach().cpu().numpy()
+
+    def _mse(self, y_true, y_pred):
+        return (y_true - y_pred).pow(2).mean().sqrt().item()
+
+    def _mae(self, y_true, y_pred):
+        return (y_true - y_pred).abs().mean().item()
+
+class CometLoggerVertex(LoggerVertex):
+    """
+    Comet ml logger
+    """
+
+    def __init__(self, experiment: CometExperiment):
+        self._experiment = experiment
+        super(CometLoggerVertex, self).__init__()
+
+    def log_metrics(self, net, loader, name, device):
+        metrics, figures, predictions = super(CometLoggerVertex, self).log_metrics(net, loader, name, device)
+        self._experiment.log_metric("MSE edepX, {}".format(name), metrics["mse_0"])
+        self._experiment.log_metric("MSE edepY, {}".format(name), metrics["mse_1"])
+        self._experiment.log_metric("MSE edepZ, {}".format(name), metrics["mse_2"])
+        self._experiment.log_metric("MAE edepX, {}".format(name), metrics["mae_0"])
+        self._experiment.log_metric("MAE edepY, {}".format(name), metrics["mae_1"])
+        self._experiment.log_metric("MAE edepZ, {}".format(name), metrics["mae_2"])
+        return metrics, figures, predictions
+
+
+    def log_er_plot(self, energies, metrics, type):
+        pass
+
 
 class Logger(object):
     def log_metrics(self, net, loader, name: str, device: str):
