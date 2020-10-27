@@ -43,7 +43,7 @@ base_command = """python train_model.py --project_name {project_name} \
 --nonlinearity {nonlinearity} --scheduler_type {scheduler_type} \
 --batch_size {batch_size} --epochs {epochs} --use_swa {use_swa} \
 --optimizer_cls {optimizer_cls} --use_layer_norm {use_layer_norm} \
---init_type {init_type} --train_type {train_type}"""
+--init_type {init_type} --train_type {train_type} --loss_function {loss_function}"""
 
 command_cluster = "sbatch -c {0} -t {1} --gpus={2} --job-name={3} run_command.sh"
 
