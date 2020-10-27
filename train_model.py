@@ -43,7 +43,7 @@ def str_to_class(classname: str):
     """
     return getattr(sys.modules[__name__], classname)
 
-def logging_test_data_all_types(logger, net, test_data, device):
+def logging_test_data_all_types(logger, net, test_data, key, device):
     from collections import defaultdict
     energies = [
             '0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8',
@@ -63,9 +63,9 @@ def logging_test_data_all_types(logger, net, test_data, device):
             datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy().reshape(-1), predictions.reshape(-1)]).T
             test_metrics.append(metrics)
         logger.log_er_plot(energies, test_metrics, type)
-    with open("datatable_predictions.pkl", 'wb') as f:
+    with open("datatable_predictions_{}.pkl".format(key), 'wb') as f:
         pickle.dump(datatable_predictions, f)
-    logger._experiment.log_asset("datatable_predictions.pkl", overwrite=True, copy_to_tmp=False)
+    logger._experiment.log_asset("datatable_predictions_{}.pkl".format(key), overwrite=True, copy_to_tmp=False)
 
 
 @click.command()
@@ -175,7 +175,7 @@ def train(
     best_loss = 1e3
     not_yet_logged = True
     last_logged = 0
-    throttling_pace = 10
+    throttling_pace = 15
     key = experiment.get_key()
     for epoch in range(epochs):
         print("Epoch {}".format(epoch))
@@ -213,6 +213,7 @@ def train(
 
             # to not be banned by comet.ml
             if last_logged < throttling_pace:
+                last_logged += 1
                 continue
 
             torch.save(best_weights, './juno_net_weights_{}.pt'.format(key))
@@ -234,9 +235,9 @@ def train(
                 'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
             )
             if use_swa and epoch > swa_start_epoch:
-                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, device=device)
+                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device)
             else:
-                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, device=device)
+                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, key=key, device=device)
             last_logged = 0
             not_yet_logged = False
 
