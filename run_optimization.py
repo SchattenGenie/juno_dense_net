@@ -28,7 +28,8 @@ optimizer_config = {
         "use_layer_norm": {"type": "categorical", "values": ["True", "False"]},
         "use_swa": {"type": "categorical", "values": ["True", "False"]},
         "optimizer_cls": {"type": "categorical", "values": ["Adam", "RMSprop", "Adagrad", "SGD"]},
-        "init_type": {"type": "categorical", "values": ["normal", "uniform", "orthogonal"]}
+        "init_type": {"type": "categorical", "values": ["normal", "uniform", "orthogonal"]},
+        # "epochs": {"type": "categorical", "values": [500, 1000, 2000, 3000, 4000]}
     },
 }
 
@@ -58,7 +59,7 @@ command_cluster = "sbatch -c {0} -t {1} --gpus={2} --job-name={3} run_command.sh
 @click.option('--max_epochs', type=int, default=5000)
 @click.option('--max_processes_in_parallel', type=int, default=3)
 @click.option('--train_type', type=str, default="0")  # 0 20 3 23
-@click.option('--train_nets_on_one_gpu', type=int, default=3)  # only for slurm
+@click.option('--train_nets_on_one_gpu', type=int, default=7)  # only for slurm
 def run_optimization(
         project_name, work_space,
         slurm=False, datadir="./", slurm_username="vbelavin",

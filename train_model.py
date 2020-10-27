@@ -96,7 +96,7 @@ def train(
         use_layer_norm=False, init_type="normal", target_variable="Edep"
 ):
     # comet logger instance preparation
-    experiment = Experiment(project_name=project_name, workspace=work_space)
+    experiment = Experiment(project_name=project_name, workspace=work_space, auto_metric_logging=False)
     logger = CometLogger(experiment)
 
     # initialization of cuda device
@@ -223,9 +223,9 @@ def train(
                 'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
             )
             if use_swa and epoch > swa_start_epoch:
-                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, device=device)
+                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device)
             else:
-                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, device=device)
+                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, key=key, device=device)
             last_logged = 0
             not_yet_logged = False
         last_logged += 1
