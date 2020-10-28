@@ -179,7 +179,7 @@ def train(
     swa_start_epoch = int(0.75 * epochs)
     if use_swa:
         swa_net = AveragedModel(net)
-        swa_scheduler = SWALR(optimizer, swa_lr=0.05)
+        swa_scheduler = SWALR(optimizer, swa_lr=lr)
 
     if scheduler_type == "ReduceLROnPlateau":
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.8, patience=5)
@@ -195,7 +195,7 @@ def train(
     throttling_pace = 3
     key = experiment.get_key()
     experiment.set_step(0)
-    for epoch in range(epochs):
+    for epoch in tqdm(range(epochs)):
         print(last_logged, not_yet_logged)
         print("Epoch {}".format(epoch))
         experiment.set_step(1 + epoch)

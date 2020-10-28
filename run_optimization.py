@@ -22,12 +22,12 @@ optimizer_config = {
         "nonlinearity": {"type": "categorical", "values": ["ReLU", "Tanh"]},
         "hidden_dim": {"min": 16, "max": 128, "type": "integer", "scalingType": "uniform"},
         "num_hidden": {"min": 2, "max": 10, "type": "integer", "scalingType": "uniform"},
-        "batch_size": {"min": 128, "max": 1024, "type": "integer", "scalingType": "uniform"},
-        "scheduler_type": {"type": "categorical", "values": ["ReduceLROnPlateau", "CosineAnnealingLR", "None"]},
+        "batch_size": {"type": "categorical", "values": ["256", "512", "768"]},
+        "scheduler_type": {"type": "categorical", "values": ["CosineAnnealingLR", "None"]},  # "ReduceLROnPlateau",
         "loss_function": {"type": "categorical", "values": ["mse", "mae", "energy_resolution_mse"]},
         "use_layer_norm": {"type": "categorical", "values": ["True", "False"]},
         "use_swa": {"type": "categorical", "values": ["True", "False"]},
-        "optimizer_cls": {"type": "categorical", "values": ["Adam", "RMSprop", "Adagrad", "SGD"]},
+        "optimizer_cls": {"type": "categorical", "values": ["Adam", "SGD"]}, # "Adagrad" "RMSprop"
         "init_type": {"type": "categorical", "values": ["normal", "uniform", "orthogonal"]},
         # "epochs": {"type": "categorical", "values": [500, 1000, 2000, 3000, 4000]}
     },
@@ -100,7 +100,7 @@ def run_optimization(
                 with open("run_command.sh", "w") as file:
                     file.write(base_slurm_command.format(" &\n".join(commands_to_run) + " &\nwait"))
                     process = subprocess.Popen(
-                        command_cluster.format(3, 60 * 20, 1, "juno_dense_net_opt"),  # 3 cpu, 20 hours, 1 gpu
+                        command_cluster.format(4, 60 * 24, 1, "juno_dense_net_opt"),  # 3 cpu, 20 hours, 1 gpu
                         shell=True,
                         close_fds=True,
                         stdout=subprocess.DEVNULL,

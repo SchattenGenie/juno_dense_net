@@ -67,7 +67,7 @@ def perform_epoch(model, loader, loss_function, device, optimizer=None, epoch=No
     cum_loss = 0
     cum_batch_size = 0
     with NullContext() if is_train else torch.no_grad():
-        for X, y in tqdm(loader):
+        for X, y in loader:
             batch_size = X.shape[0]
             cum_batch_size += batch_size
 
