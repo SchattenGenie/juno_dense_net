@@ -35,7 +35,7 @@ class LoggerVertex(object):
                 y_true = y_true.to(device)
                 y_pred = net(X_test.to(device))
             else:
-                for X, y in tqdm(loader):
+                for X, y in loader:
                     X = X.to(device)
                     y = y.to(device)
                     preds = net(X)
@@ -93,7 +93,7 @@ class Logger(object):
                 y_true = y_true.view(-1).to(device)
                 y_pred = net(X_test.to(device)).view(-1)
             else:
-                for X, y in tqdm(loader):
+                for X, y in loader:
                     X = X.to(device)
                     y = y.to(device)
                     preds = net(X)

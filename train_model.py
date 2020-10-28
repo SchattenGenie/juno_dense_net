@@ -53,7 +53,7 @@ def logging_test_data_all_types(logger, net, test_data, key, target_variable, de
             '0.9', '1', '10', '2', '3', '4', '5', '6', '7', '8', '9'
         ]
     datatable_predictions = defaultdict(list)
-    for type in tqdm(["0", "3", "20", "23"]):
+    for type in ["0", "3", "20", "23"]:
         test_metrics = []
         for energy in energies:
             X_test, y_test = test_data[(type, energy)]
