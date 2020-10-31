@@ -17,6 +17,7 @@ def energy_resolution_mse(y_true, y_pred, epoch=None):
     else:
         return mse(y_true, y_pred)
 
+
 def energy_resolution_sqrt(y_true, y_pred, epoch=None):
     # a small hack to stabilize training
     if epoch is None or epoch > 1:
@@ -33,6 +34,7 @@ def energy_resolution_mse_shifted(y_true, y_pred, epoch=None, shift=0.5):
         return err.pow(2).mean().sqrt()
     else:
         return mse(y_true, y_pred)
+
 
 def energy_resolution_mean(y_true, y_pred, epoch=None):
     err = (y_true.view(-1) - y_pred.view(-1)) / y_true.view(-1)

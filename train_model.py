@@ -72,10 +72,10 @@ def logging_test_data_all_types(logger, net, test_data, key, target_variable, de
             datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy().reshape(*shape),
                                                                predictions.reshape(*shape)]).T
             test_metrics.append(metrics)
-        logger.log_er_plot(energies, test_metrics, type)
+        logger.log_er_plot(energies, test_metrics, type, step=epoch)
     with open("datatable_predictions_{}.pkl".format(key), 'wb') as f:
         pickle.dump(datatable_predictions, f)
-    logger._experiment.log_asset("datatable_predictions_{}.pkl".format(key), overwrite=True, copy_to_tmp=False)
+    logger._experiment.log_asset("datatable_predictions_{}.pkl".format(key), overwrite=True, copy_to_tmp=False, step=epoch)
 
 
 @click.command()
@@ -214,7 +214,7 @@ def train(
             logger.log_metrics(net, train_loader, "Train", device, step=epoch)
             logger.log_metrics(net, val_loader, "Validation", device, step=epoch)
 
-        experiment.log_metric("validation_loss", mean_loss_val)
+        experiment.log_metric("validation_loss", mean_loss_val, step=epoch)
         if use_swa and epoch > swa_start_epoch:
             swa_net.update_parameters(net)
             swa_scheduler.step()
@@ -242,7 +242,7 @@ def train(
 
             torch.save(best_weights, './juno_net_weights_{}.pt'.format(key))
             experiment.log_model(
-                'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
+                'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True, step=epoch
             )
             if use_swa and epoch > swa_start_epoch:
                 logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device, target_variable=target_variable, epoch=epoch)
@@ -256,7 +256,7 @@ def train(
         if not_yet_logged and last_logged >= throttling_pace:
             torch.save(best_weights, './juno_net_weights_{}.pt'.format(key))
             experiment.log_model(
-                'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
+                'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True, step=epoch
             )
             if use_swa and epoch > swa_start_epoch:
                 logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device, target_variable=target_variable, epoch=epoch)
