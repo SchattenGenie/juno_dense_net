@@ -24,6 +24,7 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
+
 class LoggerVertex(object):
     def log_metrics(self, net, loader, name: str, device: str):
         y_true = []
@@ -58,6 +59,7 @@ class LoggerVertex(object):
     def _mae(self, y_true, y_pred):
         return (y_true - y_pred).abs().mean().item()
 
+
 class CometLoggerVertex(LoggerVertex):
     """
     Comet ml logger
@@ -69,14 +71,16 @@ class CometLoggerVertex(LoggerVertex):
 
     def log_metrics(self, net, loader, name, device):
         metrics, figures, predictions = super(CometLoggerVertex, self).log_metrics(net, loader, name, device)
-        self._experiment.log_metric("MSE edepX, {}".format(name), metrics["mse_0"])
-        self._experiment.log_metric("MSE edepY, {}".format(name), metrics["mse_1"])
-        self._experiment.log_metric("MSE edepZ, {}".format(name), metrics["mse_2"])
-        self._experiment.log_metric("MAE edepX, {}".format(name), metrics["mae_0"])
-        self._experiment.log_metric("MAE edepY, {}".format(name), metrics["mae_1"])
-        self._experiment.log_metric("MAE edepZ, {}".format(name), metrics["mae_2"])
+        metrics_to_log = {
+            "MSE edepX, {}".format(name): metrics["mse_0"],
+            "MSE edepY, {}".format(name): metrics["mse_1"],
+            "MSE edepZ, {}".format(name): metrics["mse_2"],
+            "MAE edepX, {}".format(name): metrics["mae_0"],
+            "MAE edepY, {}".format(name): metrics["mae_1"],
+            "MAE edepZ, {}".format(name): metrics["mae_2"],
+        }
+        self._experiment.log_metrics(metrics_to_log)
         return metrics, figures, predictions
-
 
     def log_er_plot(self, energies, metrics, type):
         pass
@@ -156,12 +160,16 @@ class CometLogger(Logger):
 
     def log_metrics(self, net, loader, name, device):
         metrics, figures, predictions = super(CometLogger, self).log_metrics(net, loader, name, device)
+
         if LOG_HIST == True:
             self._experiment.log_figure("Histogram (E - E_pred) / E, {}".format(name), figures["gaussian"], overwrite=True)
-        self._experiment.log_metric("MSE, {}".format(name), metrics["mse"])
-        self._experiment.log_metric("MAE, {}".format(name), metrics["mae"])
-        self._experiment.log_metric("Gaussian mean for (E - E_pred) / E, {}".format(name), metrics["mean_er"])
-        self._experiment.log_metric("Gaussian std for (E - E_pred) / E, {}".format(name), metrics["std_er"])
+
+        metrics_to_log = {
+            "MSE, {}".format(name): metrics["mse"],
+            "MAE, {}".format(name): metrics["mae"],
+            "Gaussian mean for (E - E_pred) / E, {}".format(name): metrics["std_er"],
+        }
+        self._experiment.log_metrics(metrics_to_log)
         plt.close(figures["gaussian"])
 
         return metrics, figures, predictions

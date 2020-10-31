@@ -25,6 +25,7 @@ import os
 ENERGY = "energy"
 VERTEX = "vertex"
 
+
 def get_freer_gpu():
     """
     Function to get the freest GPU available in the system
@@ -37,6 +38,7 @@ def get_freer_gpu():
     except ValueError:
         return "0"
 
+
 def str_to_class(classname: str):
     """
     Function to get class object by its name signature
@@ -45,6 +47,7 @@ def str_to_class(classname: str):
     :return: class object with the same name signature as classname
     """
     return getattr(sys.modules[__name__], classname)
+
 
 def logging_test_data_all_types(logger, net, test_data, key, target_variable, device):
     from collections import defaultdict
@@ -65,7 +68,8 @@ def logging_test_data_all_types(logger, net, test_data, key, target_variable, de
             )
             if target_variable == ENERGY: shape = (-1, )
             elif target_variable == VERTEX: shape = (3, -1)
-            datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy().reshape(*shape), predictions.reshape(*shape)]).T
+            datatable_predictions[(type, energy)] = np.vstack([y_test.detach().cpu().numpy().reshape(*shape),
+                                                               predictions.reshape(*shape)]).T
             test_metrics.append(metrics)
         logger.log_er_plot(energies, test_metrics, type)
     with open("datatable_predictions_{}.pkl".format(key), 'wb') as f:
@@ -192,7 +196,7 @@ def train(
     best_loss = 1e3
     not_yet_logged = True
     last_logged = 0
-    throttling_pace = 3
+    throttling_pace = 7
     key = experiment.get_key()
     experiment.set_step(0)
     for epoch in tqdm(range(epochs)):
