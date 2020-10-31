@@ -158,7 +158,7 @@ class CometLogger(Logger):
         self._experiment = experiment
         super(CometLogger, self).__init__()
 
-    def log_metrics(self, net, loader, name, device):
+    def log_metrics(self, net, loader, name, device, step):
         metrics, figures, predictions = super(CometLogger, self).log_metrics(net, loader, name, device)
 
         if LOG_HIST == True:

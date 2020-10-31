@@ -49,7 +49,7 @@ def str_to_class(classname: str):
     return getattr(sys.modules[__name__], classname)
 
 
-def logging_test_data_all_types(logger, net, test_data, key, target_variable, device):
+def logging_test_data_all_types(logger, net, test_data, key, target_variable, device, epoch):
     from collections import defaultdict
     energies = [
             '0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8',
@@ -64,7 +64,8 @@ def logging_test_data_all_types(logger, net, test_data, key, target_variable, de
                 net,
                 (X_test, y_test),
                 "Test, Type {}, {} MeV".format(type, energy),
-                device
+                device,
+                step=epoch
             )
             if target_variable == ENERGY: shape = (-1, )
             elif target_variable == VERTEX: shape = (3, -1)
@@ -196,7 +197,7 @@ def train(
     best_loss = 1e3
     not_yet_logged = True
     last_logged = 0
-    throttling_pace = 7
+    throttling_pace = 8
     key = experiment.get_key()
     experiment.set_step(0)
     for epoch in tqdm(range(epochs)):
@@ -206,12 +207,12 @@ def train(
         _ = perform_epoch(net, train_loader, loss_function, device=device, optimizer=optimizer, epoch=epoch)
         if use_swa and epoch > swa_start_epoch:
             mean_loss_val = perform_epoch(swa_net, val_loader, loss_function, device=device)
-            logger.log_metrics(swa_net, train_loader, "Train", device)
-            logger.log_metrics(swa_net, val_loader, "Validation", device)
+            logger.log_metrics(swa_net, train_loader, "Train", device, step=epoch)
+            logger.log_metrics(swa_net, val_loader, "Validation", device, step=epoch)
         else:
             mean_loss_val = perform_epoch(net, val_loader, loss_function, device=device)
-            logger.log_metrics(net, train_loader, "Train", device)
-            logger.log_metrics(net, val_loader, "Validation", device)
+            logger.log_metrics(net, train_loader, "Train", device, step=epoch)
+            logger.log_metrics(net, val_loader, "Validation", device, step=epoch)
 
         experiment.log_metric("validation_loss", mean_loss_val)
         if use_swa and epoch > swa_start_epoch:
@@ -244,9 +245,9 @@ def train(
                 'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
             )
             if use_swa and epoch > swa_start_epoch:
-                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device, target_variable=target_variable)
+                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device, target_variable=target_variable, epoch=epoch)
             else:
-                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, key=key, device=device, target_variable=target_variable)
+                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, key=key, device=device, target_variable=target_variable, epoch=epoch)
             last_logged = 0
             not_yet_logged = False
         last_logged += 1
@@ -258,9 +259,9 @@ def train(
                 'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
             )
             if use_swa and epoch > swa_start_epoch:
-                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device, target_variable=target_variable)
+                logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device, target_variable=target_variable, epoch=epoch)
             else:
-                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, key=key, device=device, target_variable=target_variable)
+                logging_test_data_all_types(logger=logger, net=net, test_data=test_data, key=key, device=device, target_variable=target_variable, epoch=epoch)
             last_logged = 0
             not_yet_logged = False
 
