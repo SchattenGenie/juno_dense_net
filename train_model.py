@@ -242,7 +242,7 @@ def train(
 
             torch.save(best_weights, './juno_net_weights_{}.pt'.format(key))
             experiment.log_model(
-                'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True, step=epoch
+                'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
             )
             if use_swa and epoch > swa_start_epoch:
                 logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device, target_variable=target_variable, epoch=epoch)
@@ -256,7 +256,7 @@ def train(
         if not_yet_logged and last_logged >= throttling_pace:
             torch.save(best_weights, './juno_net_weights_{}.pt'.format(key))
             experiment.log_model(
-                'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True, step=epoch
+                'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True
             )
             if use_swa and epoch > swa_start_epoch:
                 logging_test_data_all_types(logger=logger, net=swa_net, test_data=test_data, key=key, device=device, target_variable=target_variable, epoch=epoch)
