@@ -18,6 +18,24 @@ def energy_resolution_mse(y_true, y_pred, epoch=None):
         return mse(y_true, y_pred)
 
 
+def energy_resolution_mae(y_true, y_pred, epoch=None):
+    # a small hack to stabilize training
+    if epoch is None or epoch > 1:
+        err = (y_true.view(-1) - y_pred.view(-1)) / y_true.view(-1)
+        return err.pow(2).abs().mean()
+    else:
+        return mse(y_true, y_pred)
+
+
+def energy_resolution_mse_with_mse(y_true, y_pred, epoch=None):
+    # a small hack to stabilize training
+    if epoch is None or epoch > 1:
+        err = (y_true.view(-1) - y_pred.view(-1)) / y_true.view(-1)
+        return (mse(y_true, y_pred) + err.pow(2).abs().mean()) / 2.
+    else:
+        return mse(y_true, y_pred)
+
+
 def energy_resolution_sqrt(y_true, y_pred, epoch=None):
     # a small hack to stabilize training
     if epoch is None or epoch > 1:
