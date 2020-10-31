@@ -69,7 +69,7 @@ class CometLoggerVertex(LoggerVertex):
         self._experiment = experiment
         super(CometLoggerVertex, self).__init__()
 
-    def log_metrics(self, net, loader, name, device):
+    def log_metrics(self, net, loader, name, device, step):
         metrics, figures, predictions = super(CometLoggerVertex, self).log_metrics(net, loader, name, device)
         metrics_to_log = {
             "MSE edepX, {}".format(name): metrics["mse_0"],
@@ -79,7 +79,7 @@ class CometLoggerVertex(LoggerVertex):
             "MAE edepY, {}".format(name): metrics["mae_1"],
             "MAE edepZ, {}".format(name): metrics["mae_2"],
         }
-        self._experiment.log_metrics(metrics_to_log)
+        self._experiment.log_metrics(metrics_to_log, step=step)
         return metrics, figures, predictions
 
     def log_er_plot(self, energies, metrics, type):
@@ -162,19 +162,19 @@ class CometLogger(Logger):
         metrics, figures, predictions = super(CometLogger, self).log_metrics(net, loader, name, device)
 
         if LOG_HIST == True:
-            self._experiment.log_figure("Histogram (E - E_pred) / E, {}".format(name), figures["gaussian"], overwrite=True)
+            self._experiment.log_figure("Histogram (E - E_pred) / E, {}".format(name), figures["gaussian"], overwrite=True, step=step)
 
         metrics_to_log = {
             "MSE, {}".format(name): metrics["mse"],
             "MAE, {}".format(name): metrics["mae"],
             "Gaussian mean for (E - E_pred) / E, {}".format(name): metrics["std_er"],
         }
-        self._experiment.log_metrics(metrics_to_log)
+        self._experiment.log_metrics(metrics_to_log, step=step)
         plt.close(figures["gaussian"])
 
         return metrics, figures, predictions
 
     def log_er_plot(self, energies, metrics, type):
         f = super(CometLogger, self).log_er_plot(energies, metrics, type)
-        self._experiment.log_figure("Energy resolution, Type {}".format(type), f)
+        self._experiment.log_figure("Energy resolution, Type {}".format(type), f, step=step)
         plt.close(f)
