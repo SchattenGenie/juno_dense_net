@@ -24,7 +24,9 @@ optimizer_config = {
         "num_hidden": {"min": 2, "max": 10, "type": "integer", "scalingType": "uniform"},
         "batch_size": {"type": "categorical", "values": ["256", "512", "768"]},
         "scheduler_type": {"type": "categorical", "values": ["CosineAnnealingLR", "None"]},  # "ReduceLROnPlateau",
-        "loss_function": {"type": "categorical", "values": ["mse", "mae", "energy_resolution_mse"]},
+        "loss_function": {"type": "categorical", "values": [
+            "mse", "mae", "energy_resolution_mse", "energy_resolution_sqrt", "energy_resolution_shifted"
+        ]},
         "use_layer_norm": {"type": "categorical", "values": ["True", "False"]},
         "use_swa": {"type": "categorical", "values": ["True", "False"]},
         "optimizer_cls": {"type": "categorical", "values": ["Adam", "SGD"]}, # "Adagrad" "RMSprop"
