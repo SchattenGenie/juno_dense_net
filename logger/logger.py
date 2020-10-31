@@ -82,7 +82,7 @@ class CometLoggerVertex(LoggerVertex):
         self._experiment.log_metrics(metrics_to_log, step=step)
         return metrics, figures, predictions
 
-    def log_er_plot(self, energies, metrics, type):
+    def log_er_plot(self, energies, metrics, type, step):
         pass
 
 
@@ -174,7 +174,7 @@ class CometLogger(Logger):
 
         return metrics, figures, predictions
 
-    def log_er_plot(self, energies, metrics, type):
+    def log_er_plot(self, energies, metrics, type, step):
         f = super(CometLogger, self).log_er_plot(energies, metrics, type)
         self._experiment.log_figure("Energy resolution, Type {}".format(type), f, step=step)
         plt.close(f)
