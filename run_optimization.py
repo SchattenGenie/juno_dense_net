@@ -18,24 +18,23 @@ optimizer_config = {
         "metric": "validation_loss"
     },
     "parameters": {
-        "lr": {"min": 1e-4, "max": 1e-2, "type": "double", "scalingType": "loguniform"},
-        "nonlinearity": {"type": "categorical", "values": ["ReLU", "Tanh"]},
-        "hidden_dim": {"min": 16, "max": 128, "type": "integer", "scalingType": "uniform"},
-        "num_hidden": {"min": 2, "max": 10, "type": "integer", "scalingType": "uniform"},
-        "batch_size": {"type": "categorical", "values": ["256", "512", "768"]},
-        "scheduler_type": {"type": "categorical", "values": ["CosineAnnealingLR", "None", "ReduceLROnPlateau"]},  # ,
-        "loss_function": {"type": "categorical", "values": [
-            "mse", "mae", "energy_resolution_mse", "energy_resolution_sqrt",
-            "energy_resolution_mse_shifted",
-            "energy_resolution_mse_with_mse", "energy_resolution_mae"
-        ]},
-        "use_layer_norm": {"type": "categorical", "values": ["True", "False"]},
-        "use_swa": {"type": "categorical", "values": ["True", "False"]},
-        "optimizer_cls": {"type": "categorical", "values": ["Adam", "SGD", "RMSprop"]},  # "Adagrad"
-        "init_type": {"type": "categorical", "values": ["normal", "uniform", "orthogonal"]},
+        "lr": {"min": 1e-3, "max": 1e-3, "type": "double", "scalingType": "loguniform"},
+        "nonlinearity": {"type": "categorical", "values": ["ReLU"]}, # "Tanh"
+        "hidden_dim": {"min": 32, "max": 32, "type": "integer", "scalingType": "uniform"},
+        "num_hidden": {"min": 7, "max": 7, "type": "integer", "scalingType": "uniform"},
+        "batch_size": {"type": "categorical", "values": ["768"]},
+        "scheduler_type": {"type": "categorical", "values": ["CosineAnnealingLR"]},  # , "None", "ReduceLROnPlateau"
+        "loss_function": {"type": "categorical", "values": ["CombinatorialLoss"]},
+        "use_layer_norm": {"type": "categorical", "values": ["False"]},  # "True",
+        # "mse", "mae", "energy_resolution_mse", "energy_resolution_sqrt", "energy_resolution_mse_shifted",
+        # "energy_resolution_mse_with_mse", "energy_resolution_mae"
+        "use_swa": {"type": "categorical", "values": ["False"]},  # "True",
+        "optimizer_cls": {"type": "categorical", "values": ["Adam"]},  # "Adagrad", "SGD", "RMSprop"
+        "init_type": {"type": "categorical", "values": ["normal"]}, # , "uniform", "orthogonal"
         # "epochs": {"type": "categorical", "values": [500, 1000, 2000, 3000, 4000]}
     },
 }
+
 
 base_slurm_command = """#!/bin/bash
 set -x
@@ -49,7 +48,7 @@ base_command = """python train_model.py --project_name {project_name} \
 --batch_size {batch_size} --epochs {epochs} --use_swa {use_swa} \
 --optimizer_cls {optimizer_cls} --use_layer_norm {use_layer_norm} \
 --init_type {init_type} --train_type {train_type} --loss_function {loss_function} \
---target_variable {target_variable}"""
+--coeffs {coeffs} --target_variable {target_variable}"""
 
 command_cluster = "sbatch -c {0} -t {1} --gpus={2} --job-name={3} run_command.sh"
 
@@ -88,10 +87,7 @@ def run_optimization(
             datadir=datadir,
             train_type=train_type,
             target_variable=target_variable,
-            # coeff_0=x[0],
-            # coeff_1=x[1],
-            # coeff_2=x[2],
-            # coeff_3=x[3],
+            coeffs="{},{},{},{}".format(x[0], x[1], x[2], x[3]),
             **parameters["parameters"]
         )
         print(command_to_run)

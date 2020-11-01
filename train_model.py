@@ -96,12 +96,13 @@ def logging_test_data_all_types(logger, net, test_data, key, target_variable, de
 @click.option('--datadir', type=str, default='./')
 @click.option('--batch_size', type=int, default=512)
 @click.option('--epochs', type=int, default=1000)
+@click.option('--coeffs', type=str, default="0.,0.,0.,1.")
 def train(
         project_name, work_space, datadir="./", train_type="0",
         batch_size=512, lr=1e-3, epochs=1000, nonlinearity="ReLU",
         hidden_dim=20, num_hidden=4, scheduler_type="ReduceLROnPlateau",
         loss_function="mse", use_swa=False, optimizer_cls="Adam",
-        use_layer_norm=False, init_type="normal", target_variable=ENERGY
+        use_layer_norm=False, init_type="normal", target_variable=ENERGY, coeffs="0.,0.,0.,1."
 ):
     # comet logger instance preparation
     experiment = Experiment(
@@ -121,6 +122,8 @@ def train(
     else:
         device = torch.device('cpu')
     print("Using device = {}".format(device))
+
+    [float(x.strip()) for x in init_psi.split(',')]
 
     # data preparation
     # all data is stored on gpu, because it weights not so much
@@ -173,7 +176,7 @@ def train(
     ).to(device)
 
     # setting up various optimizations techniques
-    loss_function = getattr(loss_functions, loss_function)
+    loss_function = CombinatorialLoss(coeffs)
     if optimizer_cls == "SGD":
         optimizer = getattr(torch.optim, optimizer_cls)(net.parameters(), lr=lr, momentum=0.9)
     else:
