@@ -173,7 +173,7 @@ def train(
         input_shape=X.shape[1], output_size=output_size,
         hidden_dim=hidden_dim, num_hidden=num_hidden,
         nonlinearity=nonlinearity, layer_norm=use_layer_norm,
-        init_type=init_type
+        init_type=init_type, dropout=dropout
     ).to(device)
 
     # setting up various optimizations techniques
