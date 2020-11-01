@@ -128,7 +128,7 @@ def train(
 
     # data preparation
     # all data is stored on gpu, because it weights not so much
-    train_filename = os.path.join(datadir, 'ProcessedTrainReduced{}_5M.csv'.format(train_type))
+    train_filename = os.path.join(datadir, 'ProcessedTrainReduced{}.csv'.format(train_type))
     juno_loader = JunoLoader(target_variable=target_variable)
     X, y = juno_loader.transform(train_filename)
     X = torch.tensor(X).float().to(device)
