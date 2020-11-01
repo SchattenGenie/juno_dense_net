@@ -23,14 +23,15 @@ optimizer_config = {
         "hidden_dim": {"min": 16, "max": 128, "type": "integer", "scalingType": "uniform"},
         "num_hidden": {"min": 2, "max": 10, "type": "integer", "scalingType": "uniform"},
         "batch_size": {"type": "categorical", "values": ["256", "512", "768"]},
-        "scheduler_type": {"type": "categorical", "values": ["CosineAnnealingLR", "None"]},  # "ReduceLROnPlateau",
+        "scheduler_type": {"type": "categorical", "values": ["CosineAnnealingLR", "None", "ReduceLROnPlateau"]},  # ,
         "loss_function": {"type": "categorical", "values": [
-            "mse", "mae", "energy_resolution_mse", "energy_resolution_sqrt", "energy_resolution_shifted",
+            "mse", "mae", "energy_resolution_mse", "energy_resolution_sqrt",
+            "energy_resolution_mse_shifted",
             "energy_resolution_mse_with_mse", "energy_resolution_mae"
         ]},
         "use_layer_norm": {"type": "categorical", "values": ["True", "False"]},
         "use_swa": {"type": "categorical", "values": ["True", "False"]},
-        "optimizer_cls": {"type": "categorical", "values": ["Adam", "SGD"]}, # "Adagrad" "RMSprop"
+        "optimizer_cls": {"type": "categorical", "values": ["Adam", "SGD", "RMSprop"]},  # "Adagrad"
         "init_type": {"type": "categorical", "values": ["normal", "uniform", "orthogonal"]},
         # "epochs": {"type": "categorical", "values": [500, 1000, 2000, 3000, 4000]}
     },
@@ -78,6 +79,8 @@ def run_optimization(
     processes = []
     commands_to_run = []
     for parameters in optimizer.get_parameters():
+        x = np.diff(np.sort(np.random.uniform(size=5)))
+        x = x / x.sum(axis=1, keepdims=True)
         command_to_run = base_command.format(
             epochs=max_epochs,
             project_name=project_name,
@@ -85,6 +88,10 @@ def run_optimization(
             datadir=datadir,
             train_type=train_type,
             target_variable=target_variable,
+            # coeff_0=x[0],
+            # coeff_1=x[1],
+            # coeff_2=x[2],
+            # coeff_3=x[3],
             **parameters["parameters"]
         )
         print(command_to_run)

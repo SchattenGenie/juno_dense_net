@@ -1,6 +1,14 @@
 import torch
 
 
+def combinatorial_loss(y_true, y_pred, coeffs, epoch=None):
+    mse_l = mse(y_true, y_pred, epoch=epoch)
+    mae_l = mae(y_true, y_pred, epoch=epoch)
+    energy_resolution_mse_l = energy_resolution_mse(y_true, y_pred, epoch=epoch)
+    energy_resolution_mae_l = energy_resolution_mae(y_true, y_pred, epoch=epoch)
+    return coeffs[0] * mse_l + coeffs[1] * mae_l + coeffs[2] * energy_resolution_mse_l + coeffs[3] * energy_resolution_mae_l
+
+
 def mse(y_true, y_pred, epoch=None):
     return (y_true.view(-1) - y_pred.view(-1)).pow(2).mean().sqrt()
 
