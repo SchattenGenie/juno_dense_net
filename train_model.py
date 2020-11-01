@@ -102,7 +102,7 @@ def train(
         project_name, work_space, datadir="./", train_type="0",
         batch_size=512, lr=1e-3, epochs=1000, nonlinearity="ReLU",
         hidden_dim=20, num_hidden=4, scheduler_type="ReduceLROnPlateau",
-        loss_function="mse", use_swa=False, optimizer_cls="Adam",
+        loss_function="mse", use_swa=False, optimizer_cls="Adam", dropout=0.,
         use_layer_norm=False, init_type="normal", target_variable=ENERGY, coeffs="1.,0.,0.,0."
 ):
     # comet logger instance preparation
