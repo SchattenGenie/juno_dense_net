@@ -232,6 +232,7 @@ def train(
 
         # save weights and test on test
         if mean_loss_val < best_loss:
+            net.eval()
             not_yet_logged = True
             best_loss = mean_loss_val
             if use_swa and epoch > swa_start_epoch:
@@ -258,6 +259,7 @@ def train(
 
         # logging every 10 epochs or so
         if not_yet_logged and last_logged >= throttling_pace:
+            net.eval()
             torch.save(best_weights, './juno_net_weights_{}.pt'.format(key))
             experiment.log_model(
                 'juno_net_weights_{}.pt'.format(key), './juno_net_weights_{}.pt'.format(key), overwrite=True

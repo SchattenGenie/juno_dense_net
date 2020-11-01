@@ -19,7 +19,7 @@ optimizer_config = {
     },
     "parameters": {
         "lr": {"min": 1e-3, "max": 1e-3, "type": "double", "scalingType": "loguniform"},
-        "dropout": {"min": 0., "max": 0.5, "type": "double", "scalingType": "uniform"},
+        "dropout": {"min": 0., "max": 0.1, "type": "double", "scalingType": "uniform"},
         "nonlinearity": {"type": "categorical", "values": ["ReLU"]},  # "Tanh"
         "hidden_dim": {"min": 32, "max": 32, "type": "integer", "scalingType": "uniform"},
         "num_hidden": {"min": 7, "max": 7, "type": "integer", "scalingType": "uniform"},
