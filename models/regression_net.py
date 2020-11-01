@@ -11,7 +11,8 @@ class RegressionNet(nn.Module):
 
     """
 
-    def __init__(self, input_shape, output_size, hidden_dim=40, num_hidden=4, nonlinearity="Tanh", init_type=None, layer_norm=False):
+    def __init__(self, input_shape, output_size, hidden_dim=40, num_hidden=4,
+                 dropout=0.0, nonlinearity="Tanh", init_type=None, layer_norm=False):
         super(type(self), self).__init__()
         input_size = int(np.prod(input_shape))
         if num_hidden == 0:
@@ -24,11 +25,13 @@ class RegressionNet(nn.Module):
             if layer_norm:
                 self.layers.append(nn.LayerNorm(normalized_shape=hidden_dim))
             self.layers.append(getattr(nn, nonlinearity)())
+            self.layers.append(nn.Dropout(p=dropout))
             for _ in range(num_hidden - 1):
                 self.layers.append(self.apply_init(nn.Linear(hidden_dim, hidden_dim), init_type=init_type, nonlinearity=nonlinearity))
                 if layer_norm:
                     self.layers.append(nn.LayerNorm(normalized_shape=hidden_dim))
                 self.layers.append(getattr(nn, nonlinearity)())
+                self.layers.append(nn.Dropout(p=dropout))
             self.layers.append(self.apply_init(nn.Linear(hidden_dim, output_size), init_type=init_type, nonlinearity=nonlinearity))
 
     def apply_init(self, layer, init_type="normal", nonlinearity="Tanh"):
