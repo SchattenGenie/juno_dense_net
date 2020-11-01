@@ -65,7 +65,7 @@ command_cluster = "sbatch -c {0} -t {1} --gpus={2} --job-name={3} run_command.sh
 @click.option('--max_processes_in_parallel', type=int, default=3)
 @click.option('--train_type', type=str, default="0")  # 0 20 3 23
 @click.option('--train_nets_on_one_gpu', type=int, default=10)  # only for slurm
-@click.option('--target_variable', type=str, default="energy") # energy, vertex
+@click.option('--target_variable', type=str, default="energy")  # energy, vertex
 def run_optimization(
         project_name, work_space,
         slurm=False, datadir="./", slurm_username="vbelavin",
@@ -80,7 +80,7 @@ def run_optimization(
     commands_to_run = []
     for parameters in optimizer.get_parameters():
         x = np.diff(np.sort(np.random.uniform(size=5)))
-        x = x / x.sum(axis=1, keepdims=True)
+        x = x / x.sum()
         command_to_run = base_command.format(
             epochs=max_epochs,
             project_name=project_name,
