@@ -19,7 +19,7 @@ optimizer_config = {
     },
     "parameters": {
         "lr": {"min": 1e-3, "max": 1e-3, "type": "double", "scalingType": "loguniform"},
-        "dropout": {"min": 0., "max": 0.1, "type": "double", "scalingType": "uniform"},
+        "dropout": {"min": 0., "max": 0.0, "type": "double", "scalingType": "uniform"},
         "nonlinearity": {"type": "categorical", "values": ["ReLU"]},  # "Tanh"
         "hidden_dim": {"min": 32, "max": 32, "type": "integer", "scalingType": "uniform"},
         "num_hidden": {"min": 7, "max": 7, "type": "integer", "scalingType": "uniform"},
@@ -32,6 +32,7 @@ optimizer_config = {
         "use_swa": {"type": "categorical", "values": ["False"]},  # "True",
         "optimizer_cls": {"type": "categorical", "values": ["Adam"]},  # "Adagrad", "SGD", "RMSprop"
         "init_type": {"type": "categorical", "values": ["normal"]},  # , "uniform", "orthogonal"
+        "seed": {"min": 0, "max": 1000, "type": "integer", "scalingType": "uniform"}
         # "epochs": {"type": "categorical", "values": [500, 1000, 2000, 3000, 4000]}
     },
 }
