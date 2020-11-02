@@ -18,7 +18,7 @@ optimizer_config = {
         "metric": "validation_loss"
     },
     "parameters": {
-        "lr": {"min": 1e-3, "max": 1e-3, "type": "double", "scalingType": "loguniform"},
+        "lr": {"min": 2e-3, "max": 2e-3, "type": "double", "scalingType": "loguniform"},
         "dropout": {"min": 0., "max": 0.0, "type": "double", "scalingType": "uniform"},
         "nonlinearity": {"type": "categorical", "values": ["ReLU"]},  # "Tanh"
         "hidden_dim": {"min": 32, "max": 32, "type": "integer", "scalingType": "uniform"},
@@ -108,7 +108,7 @@ def run_optimization(
                 with open("run_command.sh", "w") as file:
                     file.write(base_slurm_command.format(" &\n".join(commands_to_run) + " &\nwait"))
                     process = subprocess.Popen(
-                        command_cluster.format(4, 60 * 24, 1, "juno_dense_net_opt"),  # 3 cpu, 20 hours, 1 gpu
+                        command_cluster.format(4, 60 * 30, 1, "juno_dense_net_opt"),  # 3 cpu, 30 hours, 1 gpu
                         shell=True,
                         close_fds=True,
                         stdout=subprocess.DEVNULL,
