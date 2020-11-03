@@ -35,7 +35,7 @@ def energy_resolution_mae(y_true, y_pred, energy, epoch=None):
     # a small hack to stabilize training
     if epoch is None or epoch > 1:
         err = (y_true - y_pred) / energy.view(-1, 1)
-        return err.pow(2).abs().mean()
+        return err.abs().mean()
     else:
         return mae(y_true, y_pred)
 
