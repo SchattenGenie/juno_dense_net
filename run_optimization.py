@@ -23,7 +23,7 @@ optimizer_config = {
         "nonlinearity": {"type": "categorical", "values": ["ReLU"]},  # "Tanh"
         "hidden_dim": {"min": 32, "max": 32, "type": "integer", "scalingType": "uniform"},
         "num_hidden": {"min": 7, "max": 7, "type": "integer", "scalingType": "uniform"},
-        "batch_size": {"type": "categorical", "values": ["700"]},
+        "batch_size": {"type": "categorical", "values": ["600"]},
         "scheduler_type": {"type": "categorical", "values": ["CosineAnnealingLR"]},  # , "None", "ReduceLROnPlateau"
         "loss_function": {"type": "categorical", "values": ["CombinatorialLoss"]},
         "use_layer_norm": {"type": "categorical", "values": ["False"]},  # "True",

@@ -24,6 +24,10 @@ import numpy as np
 import os
 ENERGY = "energy"
 VERTEX = "vertex"
+dataset_sizes = {
+    "1M": "",
+    "5M": "_5M",
+}
 
 
 def get_freer_gpu():
@@ -97,9 +101,10 @@ def logging_test_data_all_types(logger, net, test_data, key, target_variable, de
 @click.option('--datadir', type=str, default='./')
 @click.option('--batch_size', type=int, default=600)
 @click.option('--epochs', type=int, default=3000)
+@click.option('--dataset_size', type=str, default="1M")
 @click.option('--coeffs', type=str, default="1.,0.,0.,0.")
 def train(
-        project_name, work_space, datadir="./", train_type="0",
+        project_name, work_space, datadir="./", train_type="0", dataset_size="1M",
         batch_size=512, lr=1e-3, epochs=1000, nonlinearity="ReLU",
         hidden_dim=20, num_hidden=4, scheduler_type="ReduceLROnPlateau",
         loss_function="mse", use_swa=False, optimizer_cls="Adam", dropout=0.,
@@ -128,7 +133,7 @@ def train(
 
     # data preparation
     # all data is stored on gpu, because it weights not so much
-    train_filename = os.path.join(datadir, 'ProcessedTrainReduced{}.csv'.format(train_type))
+    train_filename = os.path.join(datadir, 'ProcessedTrainReduced{}{}.csv'.format(train_type, dataset_sizes[dataset_size]))
     juno_loader = JunoLoader(target_variable=target_variable)
     X, y, energy = juno_loader.transform(train_filename)
     X = torch.tensor(X).float().to(device)
