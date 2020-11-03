@@ -85,8 +85,8 @@ def logging_test_data_all_types(logger, net, test_data, key, target_variable, de
 @click.option('--loss_function', type=str, default='mse')
 @click.option('--hidden_dim', type=int, default=32)
 @click.option('--num_hidden', type=int, default=7)
-@click.option('--lr', type=float, default=1e-3)
-@click.option('--dropout', type=float, default=0.1)
+@click.option('--lr', type=float, default=2e-3)
+@click.option('--dropout', type=float, default=0.0)
 @click.option('--scheduler_type', type=str, default="CosineAnnealingLR")
 @click.option('--use_swa', type=bool, default=False)
 @click.option('--use_layer_norm', type=bool, default=False)
@@ -95,7 +95,7 @@ def logging_test_data_all_types(logger, net, test_data, key, target_variable, de
 @click.option('--target_variable', type=str, default="energy")  # energy, vertex
 @click.option('--train_type', type=str, default="0")  # 0 20 3 23
 @click.option('--datadir', type=str, default='./')
-@click.option('--batch_size', type=int, default=700)
+@click.option('--batch_size', type=int, default=600)
 @click.option('--epochs', type=int, default=3000)
 @click.option('--coeffs', type=str, default="1.,0.,0.,0.")
 def train(
@@ -130,26 +130,28 @@ def train(
     # all data is stored on gpu, because it weights not so much
     train_filename = os.path.join(datadir, 'ProcessedTrainReduced{}.csv'.format(train_type))
     juno_loader = JunoLoader(target_variable=target_variable)
-    X, y = juno_loader.transform(train_filename)
+    X, y, energy = juno_loader.transform(train_filename)
     X = torch.tensor(X).float().to(device)
     y = torch.tensor(y).float().to(device)
+    energy = torch.tensor(energy).float().to(device)
 
     train_idx, val_idx = train_test_split(np.arange(len(X)), test_size=0.1, random_state=42, shuffle=True)
     X_train, X_val = X[train_idx], X[val_idx]
     y_train, y_val = y[train_idx], y[val_idx]
+    energy_train, energy_val = energy[train_idx], energy[val_idx]
 
-    train_loader = CustomDataLoader(X_train, y_train, batch_size=batch_size)
-    val_loader = CustomDataLoader(X_val, y_val, batch_size=batch_size)
+    train_loader = CustomDataLoader(X_train, y_train, energy_train, batch_size=batch_size)
+    val_loader = CustomDataLoader(X_val, y_val, energy_val, batch_size=batch_size)
 
     # dataset_train = TensorDataset(X_train, y_train)
     # dataset_val = TensorDataset(X_val, y_val)
-    # dataloader_kwargs = {'num_workers': 0, 'pin_memory': True}  # {'num_workers': 0, 'pin_memory': True} if USE_CUDA else {}
-    #train_loader = torch.utils.data.DataLoader(
+    # dataloader_kwargs = {'num_workers': 0, 'pin_memory': True} if USE_CUDA else {}
+    # train_loader = torch.utils.data.DataLoader(
     #    dataset_train, batch_size=batch_size, shuffle=True, **dataloader_kwargs
-    #)
-    #val_loader = torch.utils.data.DataLoader(
+    # )
+    # val_loader = torch.utils.data.DataLoader(
     #    dataset_val, batch_size=batch_size, shuffle=True, **dataloader_kwargs
-    #)
+    # )
 
     # loading test data
     test_data = defaultdict(list)
@@ -159,7 +161,7 @@ def train(
             '0.9', '1', '10', '2', '3', '4', '5', '6', '7', '8', '9'
         ]:
             test_filename = os.path.join(datadir, './ProcessedTestReduced{}/{}MeV.csv'.format(type, energy))
-            X_test, y_test = juno_loader.transform(test_filename)
+            X_test, y_test, _ = juno_loader.transform(test_filename)
             X_test = torch.tensor(X_test).float()
             y_test = torch.tensor(y_test).float()
             test_data[(type, energy)] = (X_test, y_test)

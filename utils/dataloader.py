@@ -6,6 +6,7 @@ import numpy as np
 class JunoLoader:
     def __init__(self, target_variable="energy"):  # energy vertex
         self._columns = ['R_lmpt', 'x_c_lpmt', 'y_c_lpmt', 'z_c_lpmt', 'ht_std', 'ht_mean', 'allHits_lpmt']
+        self._energy = "Edep"
         if target_variable == "energy":
             self._target_variable = "Edep"
         elif target_variable == "vertex":
@@ -25,7 +26,8 @@ class JunoLoader:
         df = self.preprocess_data(path)
         X = (df[self._columns].values - self._mean) / self._std
         y = df[self._target_variable].values
-        return X, y
+        energy = df[self._energy].values
+        return X, y, energy
 
     def fit(self, path):
         pass
@@ -35,4 +37,5 @@ class JunoLoader:
         df = self.preprocess_data(path)
         X = (df[self._columns].values - self._mean) / self._std
         y = df[self._target_variable].values
-        return X, y
+        energy = df[self._energy].values
+        return X, y, energy
